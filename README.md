@@ -133,6 +133,54 @@ All non-health endpoints require these headers. Missing authentication context r
 	- selected invitation id (`{ invitationId }`)
 	- email-based pending selection (`{}` with authenticated invitee email)
 
+## Railway deployment
+
+This repository is monorepo-style. The API service lives in `api/`.
+
+### 1) Create service
+
+- In Railway, create a new project from this GitHub repo.
+- For the backend service, set **Root Directory** to `api`.
+
+If you keep the repository root as service root, the repo now includes:
+
+- `railway.toml` at root
+- `nixpacks.toml` at root
+
+These files force Railway to build and start from `api/` (no `start.sh` needed).
+
+### 2) Add PostgreSQL
+
+- Add a Railway PostgreSQL service in the same project.
+- Railway provides `DATABASE_URL` automatically once linked.
+
+### 3) Required variables
+
+Set these variables on the API service:
+
+- `PERSISTENCE_DRIVER=postgres`
+- `TOKEN_SIGNING_SECRET=<strong secret, at least 16 chars>`
+- `INVITATION_WEB_FALLBACK_URL=<your mobile/web invite fallback URL>`
+- `HOST=0.0.0.0`
+
+`PORT` is provided by Railway automatically.
+
+### 4) Build and start
+
+`api/railway.json` is already configured to:
+
+- build with `npm ci && npm run build`
+- run migrations at startup: `npm run start:railway` (`migrate` then `start`)
+- use `/health` as healthcheck
+
+### 5) Verify deployment
+
+After first deploy:
+
+- `GET /health`
+- `GET /docs`
+- `GET /documentation/json`
+
 ## Governance checklist
 
 Before commit:

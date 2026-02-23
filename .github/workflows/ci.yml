@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install API dependencies
+        run: |
+          cd api
+          npm ci
+
+      - name: Run API quality gate
+        run: |
+          cd api
+          npm run quality:check
+
+      - name: Verify docs consistency
+        run: python3 scripts/docs_guard.py
+
+      - name: Verify AGENTS proof freshness
+        run: python3 scripts/agents_proof.py --check

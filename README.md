@@ -170,7 +170,7 @@ Set these variables on the API service:
 `api/railway.json` is already configured to:
 
 - build with `npm ci && npm run build`
-- run migrations at startup: `npm run start:railway` (`migrate` then `start`)
+- run `npm run start:railway` (migrations run automatically only when `PERSISTENCE_DRIVER=postgres`)
 - use `/health` as healthcheck
 
 ### 5) Verify deployment

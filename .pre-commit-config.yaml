@@ -7,6 +7,24 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: docs-guard-check
+        name: documentation consistency guard
+        entry: python3 scripts/docs_guard.py
+        language: system
+        pass_filenames: false
+
+      - id: api-quality-check
+        name: api quality check (lint/typecheck/test)
+        entry: bash -lc "cd api && npm run quality:check"
+        language: system
+        pass_filenames: false
+
+      - id: commit-message-check
+        name: commit message format check
+        entry: python3 scripts/check_commit_message.py
+        language: system
+        stages: [commit-msg]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:

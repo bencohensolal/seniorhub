@@ -12,8 +12,10 @@ WATCHED_FILES = [
     ROOT / "AGENTS.md",
     ROOT / "README.md",
     ROOT / "ARCHITECTURE.md",
+    ROOT / "CHANGELOG.md",
     ROOT / "TODO.md",
     ROOT / "IDEAS.md",
+    ROOT / "CONTRIBUTING.md",
 ]
 
 

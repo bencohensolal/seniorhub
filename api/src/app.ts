@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import { householdsRoutes } from './routes/households.js';
-import { authContextPlugin } from './plugins/authContext.js';
+import { registerAuthContext } from './plugins/authContext.js';
 
 export const buildApp = () => {
   const app = Fastify({
@@ -22,7 +24,24 @@ export const buildApp = () => {
     return { status: 'ok' };
   });
 
-  app.register(authContextPlugin);
+  app.register(swagger, {
+    openapi: {
+      info: {
+        title: 'Senior Hub API',
+        version: '0.1.0',
+        description: 'Household onboarding and invitation management API contracts.',
+      },
+      tags: [{ name: 'Households' }, { name: 'Invitations' }, { name: 'Observability' }],
+    },
+  });
+
+  app.register(swaggerUi, {
+    routePrefix: '/docs',
+    staticCSP: true,
+    transformSpecificationClone: true,
+  });
+
+  registerAuthContext(app);
   app.register(householdsRoutes);
 
   return app;

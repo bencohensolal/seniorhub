@@ -1,8 +1,8 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
 const normalize = (value: string | undefined): string => (value && value.trim().length > 0 ? value.trim() : '');
 
-export const authContextPlugin: FastifyPluginAsync = async (fastify) => {
+export const registerAuthContext = (fastify: FastifyInstance): void => {
   fastify.addHook('preHandler', async (request, reply) => {
     if (request.url === '/health') {
       return;

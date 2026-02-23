@@ -94,6 +94,15 @@ const sanitizeInvitation = (invitation: {
 
 const maskEmail = (email: string): string => email.replace(/(^.).+(@.+$)/, '$1***$2');
 
+const errorResponseSchema = {
+  type: 'object',
+  properties: {
+    status: { type: 'string', enum: ['error'] },
+    message: { type: 'string' },
+  },
+  required: ['status', 'message'],
+} as const;
+
 export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
   const repository = createHouseholdRepository();
   const getHouseholdOverviewUseCase = new GetHouseholdOverviewUseCase(repository);
@@ -105,7 +114,41 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
   const acceptInvitationUseCase = new AcceptInvitationUseCase(repository);
   const cancelInvitationUseCase = new CancelInvitationUseCase(repository);
 
-  fastify.post('/v1/households', async (request, reply) => {
+  fastify.post(
+    '/v1/households',
+    {
+      schema: {
+        tags: ['Households'],
+        body: {
+          type: 'object',
+          properties: { name: { type: 'string', minLength: 2, maxLength: 120 } },
+          required: ['name'],
+        },
+        response: {
+          201: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  createdByUserId: { type: 'string' },
+                  createdAt: { type: 'string' },
+                  updatedAt: { type: 'string' },
+                },
+                required: ['id', 'name', 'createdByUserId', 'createdAt', 'updatedAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const payloadResult = createHouseholdBodySchema.safeParse(request.body);
     if (!payloadResult.success) {
       return reply.status(400).send({
@@ -123,9 +166,91 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
       status: 'success',
       data: household,
     });
-  });
+    },
+  );
 
-  fastify.post('/v1/households/:householdId/invitations/bulk', async (request, reply) => {
+  fastify.post(
+    '/v1/households/:householdId/invitations/bulk',
+    {
+      schema: {
+        tags: ['Invitations'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            users: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 50,
+              items: {
+                type: 'object',
+                properties: {
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                  email: { type: 'string', format: 'email' },
+                  role: { type: 'string', enum: ['senior', 'caregiver'] },
+                },
+                required: ['firstName', 'lastName', 'email', 'role'],
+              },
+            },
+          },
+          required: ['users'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  acceptedCount: { type: 'number' },
+                  skippedDuplicates: { type: 'number' },
+                  perUserErrors: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        email: { type: 'string' },
+                        reason: { type: 'string' },
+                      },
+                      required: ['email', 'reason'],
+                    },
+                  },
+                  deliveries: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        invitationId: { type: 'string' },
+                        inviteeEmail: { type: 'string' },
+                        status: { type: 'string', enum: ['sent', 'failed'] },
+                        deepLinkUrl: { type: 'string' },
+                        fallbackUrl: { type: ['string', 'null'] },
+                        reason: { type: ['string', 'null'] },
+                      },
+                      required: ['invitationId', 'inviteeEmail', 'status', 'deepLinkUrl', 'fallbackUrl', 'reason'],
+                    },
+                  },
+                },
+                required: ['acceptedCount', 'skippedDuplicates', 'perUserErrors', 'deliveries'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          429: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const paramsResult = paramsSchema.safeParse(request.params);
     const payloadResult = bulkInvitationBodySchema.safeParse(request.body);
 
@@ -199,18 +324,87 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
             : 404;
       return reply.status(statusCode).send({ status: 'error', message: 'Unable to create invitations.' });
     }
-  });
+    },
+  );
 
-  fastify.get('/v1/households/invitations/my-pending', async (request, reply) => {
+  fastify.get(
+    '/v1/households/invitations/my-pending',
+    {
+      schema: {
+        tags: ['Invitations'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: { type: 'array' },
+            },
+            required: ['status', 'data'],
+          },
+          401: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const pending = await listPendingInvitationsUseCase.execute({ requester: request.requester });
 
     return reply.status(200).send({
       status: 'success',
       data: pending.map(sanitizeInvitation),
     });
-  });
+    },
+  );
 
-  fastify.get('/v1/households/invitations/resolve', async (request, reply) => {
+  fastify.get(
+    '/v1/households/invitations/resolve',
+    {
+      schema: {
+        tags: ['Invitations'],
+        querystring: {
+          type: 'object',
+          properties: { token: { type: 'string' } },
+          required: ['token'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  householdId: { type: 'string' },
+                  inviteeFirstName: { type: 'string' },
+                  inviteeLastName: { type: 'string' },
+                  inviteeEmailMasked: { type: 'string' },
+                  assignedRole: { type: 'string', enum: ['senior', 'caregiver'] },
+                  status: { type: 'string' },
+                  tokenExpiresAt: { type: 'string' },
+                  createdAt: { type: 'string' },
+                },
+                required: [
+                  'id',
+                  'householdId',
+                  'inviteeFirstName',
+                  'inviteeLastName',
+                  'inviteeEmailMasked',
+                  'assignedRole',
+                  'status',
+                  'tokenExpiresAt',
+                  'createdAt',
+                ],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const queryResult = resolveQuerySchema.safeParse(request.query);
     if (!queryResult.success) {
       return reply.status(400).send({ status: 'error', message: 'Invalid request payload.' });
@@ -227,9 +421,47 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
       const message = error instanceof Error ? error.message : 'Unexpected error.';
       return reply.status(404).send({ status: 'error', message });
     }
-  });
+    },
+  );
 
-  fastify.post('/v1/households/invitations/accept', async (request, reply) => {
+  fastify.post(
+    '/v1/households/invitations/accept',
+    {
+      schema: {
+        tags: ['Invitations'],
+        body: {
+          type: 'object',
+          properties: {
+            token: { type: 'string' },
+            invitationId: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  householdId: { type: 'string' },
+                  role: { type: 'string', enum: ['senior', 'caregiver'] },
+                },
+                required: ['householdId', 'role'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const payloadResult = acceptBodySchema.safeParse(request.body);
     if (!payloadResult.success) {
       return reply.status(400).send({
@@ -278,9 +510,46 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
         message,
       });
     }
-  });
+    },
+  );
 
-  fastify.post('/v1/households/:householdId/invitations/:invitationId/cancel', async (request, reply) => {
+  fastify.post(
+    '/v1/households/:householdId/invitations/:invitationId/cancel',
+    {
+      schema: {
+        tags: ['Invitations'],
+        params: {
+          type: 'object',
+          properties: {
+            householdId: { type: 'string' },
+            invitationId: { type: 'string' },
+          },
+          required: ['householdId', 'invitationId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  cancelled: { type: 'boolean' },
+                },
+                required: ['cancelled'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const paramsResult = cancelInvitationParamsSchema.safeParse(request.params);
     if (!paramsResult.success) {
       return reply.status(400).send({
@@ -324,16 +593,90 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
         message,
       });
     }
-  });
+    },
+  );
 
-  fastify.get('/v1/observability/invitations/email-metrics', async (_request, reply) => {
+  fastify.get(
+    '/v1/observability/invitations/email-metrics',
+    {
+      schema: {
+        tags: ['Observability'],
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  queued: { type: 'number' },
+                  sent: { type: 'number' },
+                  failed: { type: 'number' },
+                  retries: { type: 'number' },
+                  deadLetter: { type: 'number' },
+                },
+                required: ['queued', 'sent', 'failed', 'retries', 'deadLetter'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+        },
+      },
+    },
+    async (_request, reply) => {
     return reply.status(200).send({
       status: 'success',
       data: invitationEmailRuntime.metrics.snapshot(),
     });
-  });
+    },
+  );
 
-  fastify.get('/v1/households/:householdId/overview', async (request, reply) => {
+  fastify.get(
+    '/v1/households/:householdId/overview',
+    {
+      schema: {
+        tags: ['Households'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  household: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      name: { type: 'string' },
+                      createdByUserId: { type: 'string' },
+                      createdAt: { type: 'string' },
+                      updatedAt: { type: 'string' },
+                    },
+                    required: ['id', 'name', 'createdByUserId', 'createdAt', 'updatedAt'],
+                  },
+                  membersCount: { type: 'number' },
+                  seniorsCount: { type: 'number' },
+                  caregiversCount: { type: 'number' },
+                },
+                required: ['household', 'membersCount', 'seniorsCount', 'caregiversCount'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
     const paramsResult = paramsSchema.safeParse(request.params);
     if (!paramsResult.success) {
       return reply.status(400).send({
@@ -361,5 +704,6 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
         message,
       });
     }
-  });
+    },
+  );
 };

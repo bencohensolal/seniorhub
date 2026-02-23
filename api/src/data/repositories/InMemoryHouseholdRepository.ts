@@ -70,6 +70,15 @@ const members: Member[] = [
 const invitations: HouseholdInvitation[] = [];
 const auditEvents: AuditEvent[] = [];
 
+export const forceExpireInvitationForTests = (invitationId: string): void => {
+  const invitation = invitations.find((item) => item.id === invitationId);
+  if (!invitation) {
+    return;
+  }
+
+  invitation.tokenExpiresAt = new Date(Date.now() - 1000).toISOString();
+};
+
 export class InMemoryHouseholdRepository implements HouseholdRepository {
   async getOverviewById(householdId: string): Promise<HouseholdOverview | null> {
     const household = households.find((item) => item.id === householdId);

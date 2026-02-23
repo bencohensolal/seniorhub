@@ -9,3 +9,5 @@ The format is inspired by Keep a Changelog.
 ### Added
 - Initial governance and architecture baseline.
 - API scaffolding for household data sharing.
+- Strong pre-commit and commit-msg hooks (docs guard, quality gate, commit format).
+- CONTRIBUTING guide with mandatory workflow and checks.

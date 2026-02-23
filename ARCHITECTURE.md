@@ -36,6 +36,19 @@ flowchart TB
   RepoPorts --> DataRepos[Data Repositories]
 ```
 
+### 4.1 Layer responsibilities
+
+- `routes`: transport-only logic (HTTP parse/validate/map), no business rules
+- `domain/usecases`: access control decisions and business orchestration
+- `domain/repositories`: abstract ports for persistence and external data
+- `data/repositories`: concrete implementations behind ports
+
+### 4.2 Contract and DTO policy
+
+- request and response DTOs must remain explicit and stable
+- contract changes must be documented in `CHANGELOG.md`
+- sensitive fields must never be returned unless explicitly required and authorized
+
 ## 5. Functional modules (initial)
 
 - `households`: create/read households
@@ -57,7 +70,13 @@ flowchart TB
 - only minimal required data is returned in overview endpoints
 - errors must avoid leaking sensitive internals
 
-## 8. Near-term decisions
+## 8. Quality constraints
+
+- mandatory quality command: `cd api && npm run quality:check`
+- mutation endpoints must include explicit Zod payload validation
+- household membership checks are mandatory in use-cases for protected resources
+
+## 9. Near-term decisions
 
 - persistent storage strategy (PostgreSQL + migration tool)
 - auth integration strategy (JWT/session)

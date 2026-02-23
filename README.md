@@ -17,11 +17,19 @@ Build a robust API platform that can:
 - Zod for request validation
 - Vitest for unit testing
 
+## Engineering principles
+
+- strict layering (`api`, `domain`, `data`)
+- explicit household-level access checks
+- strongly typed contracts
+- maintainability-first evolution with proactive refactoring
+
 ## Project structure
 
 - `api/`: API service
 - `AGENTS.md`: cross-cutting engineering directives
 - `ARCHITECTURE.md`: technical source of truth
+- `CONTRIBUTING.md`: workflow, commit and hook expectations
 - `CHANGELOG.md`: release/change history
 - `TODO.md`: actionable backlog
 - `IDEAS.md`: product and technical ideas
@@ -36,6 +44,13 @@ npm run dev
 
 API will run on `http://localhost:4000` by default.
 
+## Install contribution hooks
+
+```bash
+python3 -m pip install --user pre-commit
+pre-commit install --install-hooks --hook-type pre-commit --hook-type commit-msg
+```
+
 ## Quality checks
 
 ```bash
@@ -43,7 +58,25 @@ cd api
 npm run lint
 npm run typecheck
 npm run test
+npm run quality:check
 ```
+
+## Commit requirements
+
+- Commit format: `type(name): summary`, blank line, description
+- Allowed types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+- Mandatory before commit:
+
+```bash
+python3 scripts/agents_proof.py --refresh
+```
+
+## API baseline endpoint
+
+- `GET /health`
+- `GET /v1/households/:householdId/overview?requesterMemberId=<id>`
+
+Both endpoints currently use in-memory data; persistence is planned in the next milestones.
 
 ## Governance checklist
 

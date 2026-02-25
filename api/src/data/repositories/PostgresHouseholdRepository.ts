@@ -564,6 +564,66 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     );
   }
 
+  async findMemberById(memberId: string): Promise<Member | null> {
+    const result = await this.pool.query<{
+      id: string;
+      household_id: string;
+      user_id: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+      role: HouseholdRole;
+      status: 'active' | 'pending';
+      joined_at: string | Date;
+      created_at: string | Date;
+    }>(
+      `SELECT id, household_id, user_id, email, first_name, last_name, role, status, joined_at, created_at
+       FROM household_members
+       WHERE id = $1 AND status = 'active'
+       LIMIT 1`,
+      [memberId],
+    );
+
+    const row = result.rows[0];
+    return row ? mapMember(row) : null;
+  }
+
+  async removeMember(memberId: string): Promise<void> {
+    await this.pool.query(
+      `DELETE FROM household_members
+       WHERE id = $1`,
+      [memberId],
+    );
+  }
+
+  async updateMemberRole(memberId: string, newRole: HouseholdRole): Promise<Member> {
+    const result = await this.pool.query<{
+      id: string;
+      household_id: string;
+      user_id: string;
+      email: string;
+      first_name: string;
+      last_name: string;
+      role: HouseholdRole;
+      status: 'active' | 'pending';
+      joined_at: string | Date;
+      created_at: string | Date;
+    }>(
+      `UPDATE household_members
+       SET role = $2
+       WHERE id = $1 AND status = 'active'
+       RETURNING id, household_id, user_id, email, first_name, last_name, role, status, joined_at, created_at`,
+      [memberId, newRole],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Member not found or already removed.');
+    }
+
+    return mapMember(row);
+  }
+
   private async findInvitationForAccept(
     client: PoolClient,
     input: { requester: AuthenticatedRequester; token?: string; invitationId?: string },

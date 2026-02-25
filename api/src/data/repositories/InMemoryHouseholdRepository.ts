@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { env } from '../../config/env.js';
 import type { AuthenticatedRequester, Household, HouseholdOverview } from '../../domain/entities/Household.js';
 import type { AuditEvent, AuditEventInput, HouseholdInvitation } from '../../domain/entities/Invitation.js';
-import type { Member } from '../../domain/entities/Member.js';
+import type { HouseholdRole, Member } from '../../domain/entities/Member.js';
 import { signInvitationToken, isInvitationTokenValid } from '../../domain/security/invitationToken.js';
 import { buildInvitationLinks } from '../../domain/services/buildInvitationLinks.js';
 import type {
@@ -411,5 +411,26 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
       metadata: input.metadata,
       createdAt: nowIso(),
     });
+  }
+
+  async findMemberById(memberId: string): Promise<Member | null> {
+    const member = members.find((m) => m.id === memberId && m.status === 'active');
+    return member ?? null;
+  }
+
+  async removeMember(memberId: string): Promise<void> {
+    const index = members.findIndex((m) => m.id === memberId);
+    if (index !== -1) {
+      members.splice(index, 1);
+    }
+  }
+
+  async updateMemberRole(memberId: string, newRole: HouseholdRole): Promise<Member> {
+    const member = members.find((m) => m.id === memberId && m.status === 'active');
+    if (!member) {
+      throw new Error('Member not found or already removed.');
+    }
+    member.role = newRole;
+    return member;
   }
 }

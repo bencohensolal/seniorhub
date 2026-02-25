@@ -29,6 +29,7 @@ export interface UserHouseholdMembership {
 export interface HouseholdRepository {
   getOverviewById(householdId: string): Promise<HouseholdOverview | null>;
   findMemberInHousehold(memberId: string, householdId: string): Promise<Member | null>;
+  findMemberById(memberId: string): Promise<Member | null>;
   findActiveMemberByUserInHousehold(userId: string, householdId: string): Promise<Member | null>;
   listUserHouseholds(userId: string): Promise<UserHouseholdMembership[]>;
   listHouseholdMembers(householdId: string): Promise<Member[]>;
@@ -50,5 +51,7 @@ export interface HouseholdRepository {
     invitationId: string;
     requesterUserId: string;
   }): Promise<void>;
+  removeMember(memberId: string): Promise<void>;
+  updateMemberRole(memberId: string, newRole: HouseholdRole): Promise<Member>;
   logAuditEvent(input: AuditEventInput): Promise<void>;
 }

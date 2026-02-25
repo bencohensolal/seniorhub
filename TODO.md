@@ -90,3 +90,20 @@
 - [x] Document onboarding endpoints and payloads in OpenAPI
 - [x] Add sequence diagram in backend docs (create household, invite, accept)
 - [x] Provide mobile integration notes for deep-link and fallback flow
+
+### 8) Missing endpoint for user household memberships
+
+**Need:** When mobile app user authenticates, they need to know which households they belong to so they can:
+- Display "Use my household" button if they have at least one household
+- Select which household to use if they have multiple
+- Skip household creation if they're already a member
+
+**Required endpoint:**
+- `GET /v1/households/my-memberships` or `GET /v1/users/me/households`
+	- behavior: list all households where authenticated user is an active member
+	- response: `{ data: [{ householdId, householdName, myRole, joinedAt, memberCount }] }`
+	- sorted by most recently joined or most recently used
+	- needed for app startup to decide which screen to show
+
+**Alternative temporary solution (app-side):**
+Store last used `householdId` in AsyncStorage, but this doesn't handle multi-household users properly.

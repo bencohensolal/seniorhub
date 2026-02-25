@@ -1,22 +1,24 @@
 import type { HouseholdRole } from '../entities/Member.js';
+import { loadEmailTemplate } from './emailTemplateLoader.js';
 
 const roleLabel = (role: HouseholdRole): string => (role === 'caregiver' ? 'Caregiver' : 'Senior');
 
-export const buildInvitationEmailTemplate = (input: {
+/**
+ * Build invitation email from template files
+ * Templates are located in api/templates/emails/invitation/
+ */
+export async function buildInvitationEmailTemplate(input: {
   firstName: string;
   assignedRole: HouseholdRole;
   deepLinkUrl: string;
   fallbackUrl: string | null;
-}): { subject: string; body: string } => {
+}): Promise<{ subject: string; body: string }> {
   const greetingName = input.firstName.trim() || 'there';
-  const fallbackBlock = input.fallbackUrl
-    ? `If the app is not installed yet, open this secure link:\n${input.fallbackUrl}\n\n`
-    : '';
 
-  return {
-    subject: 'Senior Hub household invitation',
-    body: `Hello ${greetingName},\n\nYou have been invited to join a Senior Hub household as ${roleLabel(
-      input.assignedRole,
-    )}.\n\nOpen this invitation in the app:\n${input.deepLinkUrl}\n\n${fallbackBlock}This invitation is single-use and expires automatically for safety.\n\nIf you were not expecting this email, you can ignore it.`,
-  };
-};
+  return loadEmailTemplate('invitation', {
+    firstName: greetingName,
+    role: roleLabel(input.assignedRole),
+    deepLinkUrl: input.deepLinkUrl,
+    fallbackUrl: input.fallbackUrl,
+  });
+}

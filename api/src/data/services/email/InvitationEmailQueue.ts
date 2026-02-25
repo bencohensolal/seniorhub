@@ -20,7 +20,7 @@ export class InvitationEmailQueue {
 
   private async processJob(job: InvitationEmailJob, attempt: number): Promise<void> {
     try {
-      const template = buildInvitationEmailTemplate({
+      const template = await buildInvitationEmailTemplate({
         firstName: job.inviteeFirstName,
         assignedRole: job.assignedRole,
         deepLinkUrl: job.deepLinkUrl,

@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import { env } from '../../config/env.js';
 import type { AuthenticatedRequester, Household, HouseholdOverview } from '../../domain/entities/Household.js';
@@ -11,76 +11,18 @@ import type {
   HouseholdRepository,
   InvitationCandidate,
 } from '../../domain/repositories/HouseholdRepository.js';
+import {
+  nowIso,
+  addHours,
+  toIso,
+  hashToken,
+  normalizeEmail,
+  normalizeName,
+  mapMember,
+  mapInvitation,
+} from './postgres/helpers.js';
 
 const INVITATION_TTL_HOURS = 72;
-
-const nowIso = (): string => new Date().toISOString();
-
-const addHours = (isoDate: string, hours: number): string => {
-  const date = new Date(isoDate);
-  date.setHours(date.getHours() + hours);
-  return date.toISOString();
-};
-
-const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
-
-const normalizeEmail = (email: string): string => email.trim().toLowerCase();
-
-const normalizeName = (value: string): string => value.trim();
-
-const toIso = (value: string | Date): string => new Date(value).toISOString();
-
-const mapMember = (row: {
-  id: string;
-  household_id: string;
-  user_id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: HouseholdRole;
-  status: 'active' | 'pending';
-  joined_at: string | Date;
-  created_at: string | Date;
-}): Member => ({
-  id: row.id,
-  householdId: row.household_id,
-  userId: row.user_id,
-  email: row.email,
-  firstName: row.first_name,
-  lastName: row.last_name,
-  role: row.role,
-  status: row.status,
-  joinedAt: toIso(row.joined_at),
-  createdAt: toIso(row.created_at),
-});
-
-const mapInvitation = (row: {
-  id: string;
-  household_id: string;
-  inviter_user_id: string;
-  invitee_email: string;
-  invitee_first_name: string;
-  invitee_last_name: string;
-  assigned_role: HouseholdRole;
-  token_hash: string;
-  token_expires_at: string | Date;
-  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
-  created_at: string | Date;
-  accepted_at: string | Date | null;
-}): HouseholdInvitation => ({
-  id: row.id,
-  householdId: row.household_id,
-  inviterUserId: row.inviter_user_id,
-  inviteeEmail: row.invitee_email,
-  inviteeFirstName: row.invitee_first_name,
-  inviteeLastName: row.invitee_last_name,
-  assignedRole: row.assigned_role,
-  tokenHash: row.token_hash,
-  tokenExpiresAt: toIso(row.token_expires_at),
-  status: row.status,
-  createdAt: toIso(row.created_at),
-  acceptedAt: row.accepted_at ? toIso(row.accepted_at) : null,
-});
 
 export class PostgresHouseholdRepository implements HouseholdRepository {
   constructor(private readonly pool: Pool) {}
@@ -175,6 +117,42 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     return row ? mapMember(row) : null;
+  }
+
+  async listUserHouseholds(userId: string): Promise<Array<{
+    householdId: string;
+    householdName: string;
+    myRole: HouseholdRole;
+    joinedAt: string;
+    memberCount: number;
+  }>> {
+    const result = await this.pool.query<{
+      household_id: string;
+      household_name: string;
+      my_role: HouseholdRole;
+      joined_at: string | Date;
+      member_count: number;
+    }>(
+      `SELECT
+         m.household_id,
+         h.name AS household_name,
+         m.role AS my_role,
+         m.joined_at,
+         (SELECT COUNT(*) FROM household_members WHERE household_id = m.household_id AND status = 'active')::int AS member_count
+       FROM household_members m
+       JOIN households h ON h.id = m.household_id
+       WHERE m.user_id = $1 AND m.status = 'active'
+       ORDER BY m.joined_at DESC`,
+      [userId],
+    );
+
+    return result.rows.map((row) => ({
+      householdId: row.household_id,
+      householdName: row.household_name,
+      myRole: row.my_role,
+      joinedAt: toIso(row.joined_at),
+      memberCount: row.member_count,
+    }));
   }
 
   async createHousehold(name: string, requester: AuthenticatedRequester): Promise<Household> {

@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { env } from '../../config/env.js';
 import type { AuthenticatedRequester, Household, HouseholdOverview } from '../../domain/entities/Household.js';
 import type { AuditEvent, AuditEventInput, HouseholdInvitation } from '../../domain/entities/Invitation.js';
@@ -10,24 +10,13 @@ import type {
   HouseholdRepository,
   InvitationCandidate,
 } from '../../domain/repositories/HouseholdRepository.js';
+import { nowIso, addHours, hashToken, normalizeEmail, normalizeName } from './postgres/helpers.js';
 
 const INVITATION_TTL_HOURS = 72;
 
-const nowIso = (): string => new Date().toISOString();
-
-const addHours = (isoDate: string, hours: number): string => {
-  const date = new Date(isoDate);
-  date.setHours(date.getHours() + hours);
-  return date.toISOString();
-};
-
-const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
-
-const normalizeEmail = (email: string): string => email.trim().toLowerCase();
-
 const buildDisplayName = (firstName: string, lastName: string): { firstName: string; lastName: string } => ({
-  firstName: firstName.trim(),
-  lastName: lastName.trim(),
+  firstName: normalizeName(firstName),
+  lastName: normalizeName(lastName),
 });
 
 const households: Household[] = [
@@ -114,6 +103,40 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
           member.userId === userId && member.householdId === householdId && member.status === 'active',
       ) ?? null
     );
+  }
+
+  async listUserHouseholds(userId: string): Promise<Array<{
+    householdId: string;
+    householdName: string;
+    myRole: 'senior' | 'caregiver';
+    joinedAt: string;
+    memberCount: number;
+  }>> {
+    const userMemberships = members.filter(
+      (member) => member.userId === userId && member.status === 'active',
+    );
+
+    return userMemberships
+      .map((membership) => {
+        const household = households.find((h) => h.id === membership.householdId);
+        if (!household) {
+          return null;
+        }
+
+        const memberCount = members.filter(
+          (m) => m.householdId === membership.householdId && m.status === 'active',
+        ).length;
+
+        return {
+          householdId: household.id,
+          householdName: household.name,
+          myRole: membership.role,
+          joinedAt: membership.joinedAt,
+          memberCount,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
   }
 
   async createHousehold(name: string, requester: AuthenticatedRequester): Promise<Household> {

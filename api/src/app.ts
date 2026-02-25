@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { householdsRoutes } from './routes/households.js';
+import { householdsRoutes } from './routes/households/index.js';
 import { registerAuthContext } from './plugins/authContext.js';
 
 export const buildApp = () => {

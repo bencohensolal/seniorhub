@@ -18,10 +18,19 @@ export interface BulkInvitationResult {
   deliveries: InvitationDeliveryResult[];
 }
 
+export interface UserHouseholdMembership {
+  householdId: string;
+  householdName: string;
+  myRole: HouseholdRole;
+  joinedAt: string;
+  memberCount: number;
+}
+
 export interface HouseholdRepository {
   getOverviewById(householdId: string): Promise<HouseholdOverview | null>;
   findMemberInHousehold(memberId: string, householdId: string): Promise<Member | null>;
   findActiveMemberByUserInHousehold(userId: string, householdId: string): Promise<Member | null>;
+  listUserHouseholds(userId: string): Promise<UserHouseholdMembership[]>;
   createHousehold(name: string, requester: AuthenticatedRequester): Promise<Household>;
   createBulkInvitations(input: {
     householdId: string;

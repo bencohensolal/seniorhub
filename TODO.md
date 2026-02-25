@@ -103,3 +103,24 @@
 	- App was calling `GET /v1/households/my-households` (was getting 404)
 	- Renamed endpoint from `/my-memberships` to `/my-households` to match app expectation
 	- Endpoint now returns proper format: `{ status: 'success', data: [...] }`
+
+### 9) Household member management
+
+- [x] `DELETE /v1/households/:householdId/members/:memberId` - Remove member
+	- [x] Authorization: only caregivers can remove other members
+	- [x] Validation: cannot remove self, cannot remove if last member
+	- [x] Response: `{ status: 'success' }`
+	- [x] App usage: HouseholdManagementScreen remove button
+
+- [x] `PATCH /v1/households/:householdId/members/:memberId` - Update member role
+	- [x] Authorization: only caregivers can update roles
+	- [x] Body: `{ role: 'senior' | 'caregiver' | 'family' | 'intervenant' }`
+	- [x] Validation: cannot demote self if last caregiver
+	- [x] Response: `{ status: 'success', data: updatedMember }`
+	- [x] App usage: HouseholdManagementScreen edit button
+
+- [x] `DELETE /v1/households/:householdId/members/me` - Leave household
+	- [x] Authorization: authenticated user
+	- [x] Validation: cannot leave if last caregiver or last member
+	- [x] Response: `{ status: 'success' }`
+	- [x] App usage: HouseholdManagementScreen leave button

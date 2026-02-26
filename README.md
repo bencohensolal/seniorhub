@@ -27,7 +27,9 @@ Build a robust API platform that can:
 
 ## Project structure
 
-- `api/`: API service
+- `src/`: Source code (API, domain, data layers)
+- `migrations/`: Database migrations
+- `templates/`: Email templates
 - `AGENTS.md`: cross-cutting engineering directives
 - `ARCHITECTURE.md`: technical source of truth
 - `CONTRIBUTING.md`: workflow, commit and hook expectations
@@ -38,7 +40,6 @@ Build a robust API platform that can:
 ## Quick start
 
 ```bash
-cd api
 npm install
 npm run dev
 ```
@@ -52,7 +53,6 @@ By default, API routes use in-memory repositories.
 To enable PostgreSQL persistence:
 
 ```bash
-cd api
 cp .env.example .env
 ```
 
@@ -64,7 +64,6 @@ Set:
 Then run migrations:
 
 ```bash
-cd api
 npm run migrate
 ```
 
@@ -83,7 +82,6 @@ pre-commit install --install-hooks --hook-type pre-commit --hook-type commit-msg
 ## Quality checks
 
 ```bash
-cd api
 npm run lint
 npm run typecheck
 npm run test
@@ -126,7 +124,7 @@ All non-health endpoints require these headers. Missing authentication context r
 - Invitation deep-link format:
 	- `seniorhub://invite?type=household-invite&token=<signed_token>`
 - Optional web fallback:
-	- configure `INVITATION_WEB_FALLBACK_URL` in `api/.env`
+	- configure `INVITATION_WEB_FALLBACK_URL` in `.env`
 	- API returns both `deepLinkUrl` and `fallbackUrl` in invitation deliveries
 - Invitation acceptance supports:
 	- direct token (`POST /v1/households/invitations/accept` with `{ token }`)
@@ -135,19 +133,17 @@ All non-health endpoints require these headers. Missing authentication context r
 
 ## Railway deployment
 
-This repository is monorepo-style. The API service lives in `api/`.
-
 ### 1) Create service
 
 - In Railway, create a new project from this GitHub repo.
-- For the backend service, set **Root Directory** to `api`.
+- The service will use the repository root.
 
-If you keep the repository root as service root, the repo now includes:
+The repository includes:
 
 - `railway.toml` at root
 - `nixpacks.toml` at root
 
-These files force Railway to build and start from `api/` (no `start.sh` needed).
+These files configure Railway to build and start the service properly.
 
 ### 2) Add PostgreSQL
 
@@ -170,7 +166,7 @@ Set these variables on the API service:
 
 ### 4) Build and start
 
-`api/railway.json` is already configured to:
+The Railway configuration uses:
 
 - build with `npm ci && npm run build`
 - run `npm run start:railway` (migrations run automatically only when `PERSISTENCE_DRIVER=postgres`)
@@ -191,8 +187,7 @@ After first deploy:
 To reset the database (useful for testing or fresh starts):
 
 ```bash
-cd api
-./scripts/clear-railway-db.sh
+npm run db:clear:railway
 ```
 
 This script:

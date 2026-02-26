@@ -13,7 +13,7 @@
     "start:railway": "node dist/scripts/startRailway.js",
     "migrate": "tsx src/scripts/migrate.ts",
     "migrate:prod": "node dist/scripts/migrate.js",
-    "db:clear:railway": "./scripts/clear-railway-db.sh",
+    "db:clear:railway": "./scripts-db/clear-railway-db.sh",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

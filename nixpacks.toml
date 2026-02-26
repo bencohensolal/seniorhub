@@ -2,10 +2,10 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["cd api && npm ci"]
+cmds = ["npm ci"]
 
 [phases.build]
-cmds = ["cd api && npm run build"]
+cmds = ["npm run build"]
 
 [start]
-cmd = "cd api && npm run start:railway"
+cmd = "npm run start:railway"

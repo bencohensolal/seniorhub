@@ -19,8 +19,10 @@ const envSchema = z
     INVITATION_WEB_FALLBACK_URL: optionalUrlFromEnv,
     EMAIL_JOB_MAX_RETRIES: z.coerce.number().int().min(0).max(10).default(3),
     EMAIL_JOB_RETRY_DELAY_MS: z.coerce.number().int().min(10).max(60_000).default(1000),
-    EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),
+    EMAIL_PROVIDER: z.enum(['console', 'resend', 'gmail']).default('console'),
     RESEND_API_KEY: z.string().optional(),
+    GMAIL_USER: z.string().optional(),
+    GMAIL_APP_PASSWORD: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
   })
   .superRefine((value, context) => {
@@ -45,6 +47,30 @@ const envSchema = z
           code: z.ZodIssueCode.custom,
           path: ['EMAIL_FROM'],
           message: 'EMAIL_FROM is required when EMAIL_PROVIDER=resend.',
+        });
+      }
+    }
+
+    if (value.EMAIL_PROVIDER === 'gmail') {
+      if (!value.GMAIL_USER) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['GMAIL_USER'],
+          message: 'GMAIL_USER is required when EMAIL_PROVIDER=gmail.',
+        });
+      }
+      if (!value.GMAIL_APP_PASSWORD) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['GMAIL_APP_PASSWORD'],
+          message: 'GMAIL_APP_PASSWORD is required when EMAIL_PROVIDER=gmail.',
+        });
+      }
+      if (!value.EMAIL_FROM) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['EMAIL_FROM'],
+          message: 'EMAIL_FROM is required when EMAIL_PROVIDER=gmail.',
         });
       }
     }

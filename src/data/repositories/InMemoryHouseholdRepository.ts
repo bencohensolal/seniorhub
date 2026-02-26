@@ -108,7 +108,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
   async listUserHouseholds(userId: string): Promise<Array<{
     householdId: string;
     householdName: string;
-    myRole: 'senior' | 'caregiver';
+    myRole: HouseholdRole;
     joinedAt: string;
     memberCount: number;
   }>> {
@@ -337,7 +337,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     requester: AuthenticatedRequester;
     token?: string;
     invitationId?: string;
-  }): Promise<{ householdId: string; role: 'senior' | 'caregiver' }> {
+  }): Promise<{ householdId: string; role: HouseholdRole }> {
     const email = normalizeEmail(input.requester.email);
 
     let invitation: HouseholdInvitation | undefined;
@@ -430,6 +430,52 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     }
 
     invitation.status = 'cancelled';
+  }
+
+  async resendInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    requesterUserId: string;
+  }): Promise<{ newToken: string; newExpiresAt: string; deepLinkUrl: string; fallbackUrl: string | null }> {
+    const requester = await this.findActiveMemberByUserInHousehold(input.requesterUserId, input.householdId);
+    if (!requester || requester.role !== 'caregiver') {
+      throw new Error('Only caregivers can resend invitations.');
+    }
+
+    const invitation = invitations.find(
+      (item) => item.id === input.invitationId && item.householdId === input.householdId,
+    );
+
+    if (!invitation) {
+      throw new Error('Invitation not found.');
+    }
+
+    if (invitation.status !== 'pending') {
+      throw new Error('Can only resend pending invitations.');
+    }
+
+    if (new Date(invitation.tokenExpiresAt) <= new Date()) {
+      throw new Error('Cannot resend expired invitation. Please cancel and create a new one.');
+    }
+
+    const newExpiresAt = addHours(nowIso(), INVITATION_TTL_HOURS);
+    const newToken = signInvitationToken(input.invitationId, env.TOKEN_SIGNING_SECRET);
+    const newTokenHash = hashToken(newToken);
+
+    invitation.tokenHash = newTokenHash;
+    invitation.tokenExpiresAt = newExpiresAt;
+
+    const links = buildInvitationLinks({
+      token: newToken,
+      ...(env.INVITATION_WEB_FALLBACK_URL ? { fallbackBaseUrl: env.INVITATION_WEB_FALLBACK_URL } : {}),
+    });
+
+    return {
+      newToken,
+      newExpiresAt,
+      deepLinkUrl: links.deepLinkUrl,
+      fallbackUrl: links.fallbackUrl,
+    };
   }
 
   async logAuditEvent(input: AuditEventInput): Promise<void> {

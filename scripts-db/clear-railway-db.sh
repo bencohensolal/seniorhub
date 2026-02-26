@@ -1,10 +1,12 @@
 #!/bin/bash
 # Clear all data from Railway PostgreSQL database
-# This script can fetch the database URL from Railway or use a provided URL
+# This script can fetch the database URL from Railway or use a cached value
 
 set -e
 
 cd "$(dirname "$0")/.."
+
+CACHE_FILE=".env.railway"
 
 echo "🔍 Attempting to fetch Railway database URL..."
 
@@ -19,6 +21,14 @@ fi
 # If still no URL, try DATABASE_URL
 if [ -z "$PUBLIC_URL" ] || [ "$PUBLIC_URL" = "null" ]; then
   PUBLIC_URL=$(railway variables --json 2>/dev/null | jq -r '.DATABASE_URL' 2>/dev/null || echo "")
+fi
+
+# If we still don't have a URL, check the cache file
+if [ -z "$PUBLIC_URL" ] || [ "$PUBLIC_URL" = "null" ]; then
+  if [ -f "$CACHE_FILE" ]; then
+    echo "📁 Reading from cached file: $CACHE_FILE"
+    PUBLIC_URL=$(grep -E '^DATABASE_PUBLIC_URL=' "$CACHE_FILE" | cut -d '=' -f2- || echo "")
+  fi
 fi
 
 # If we still don't have a URL, ask the user
@@ -41,6 +51,11 @@ if [ -z "$PUBLIC_URL" ] || [ "$PUBLIC_URL" = "null" ]; then
     echo "❌ No URL provided. Exiting."
     exit 1
   fi
+  
+  # Save to cache file for next time
+  echo "💾 Saving URL to $CACHE_FILE for future use..."
+  echo "DATABASE_PUBLIC_URL=$PUBLIC_URL" > "$CACHE_FILE"
+  echo "✅ URL cached (file ignored by git)"
 fi
 
 echo ""

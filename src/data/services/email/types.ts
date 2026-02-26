@@ -1,3 +1,5 @@
+import type { HouseholdRole } from '../../../domain/entities/Member.js';
+
 export interface EmailMessage {
   to: string;
   subject: string;
@@ -12,7 +14,7 @@ export interface InvitationEmailJob {
   invitationId: string;
   inviteeEmail: string;
   inviteeFirstName: string;
-  assignedRole: 'senior' | 'caregiver';
+  assignedRole: HouseholdRole;
   deepLinkUrl: string;
   fallbackUrl: string | null;
 }

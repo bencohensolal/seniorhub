@@ -11,6 +11,7 @@ import { ListHouseholdInvitationsUseCase } from '../../domain/usecases/ListHouse
 import { ListPendingInvitationsUseCase } from '../../domain/usecases/ListPendingInvitationsUseCase.js';
 import { ListUserHouseholdsUseCase } from '../../domain/usecases/ListUserHouseholdsUseCase.js';
 import { RemoveHouseholdMemberUseCase } from '../../domain/usecases/RemoveHouseholdMemberUseCase.js';
+import { ResendInvitationUseCase } from '../../domain/usecases/ResendInvitationUseCase.js';
 import { ResolveInvitationUseCase } from '../../domain/usecases/ResolveInvitationUseCase.js';
 import { UpdateHouseholdMemberRoleUseCase } from '../../domain/usecases/UpdateHouseholdMemberRoleUseCase.js';
 import { createHouseholdRepository } from '../../data/repositories/createHouseholdRepository.js';
@@ -43,6 +44,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     resolveInvitationUseCase: new ResolveInvitationUseCase(repository),
     acceptInvitationUseCase: new AcceptInvitationUseCase(repository),
     cancelInvitationUseCase: new CancelInvitationUseCase(repository),
+    resendInvitationUseCase: new ResendInvitationUseCase(repository),
     removeHouseholdMemberUseCase: new RemoveHouseholdMemberUseCase(repository),
     updateHouseholdMemberRoleUseCase: new UpdateHouseholdMemberRoleUseCase(repository),
     leaveHouseholdUseCase: new LeaveHouseholdUseCase(repository),
@@ -67,6 +69,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     resolveInvitationUseCase: useCases.resolveInvitationUseCase,
     acceptInvitationUseCase: useCases.acceptInvitationUseCase,
     cancelInvitationUseCase: useCases.cancelInvitationUseCase,
+    resendInvitationUseCase: useCases.resendInvitationUseCase,
   });
 
   registerObservabilityRoutes(fastify);

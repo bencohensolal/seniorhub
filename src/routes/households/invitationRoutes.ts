@@ -7,6 +7,7 @@ import type { EnsureHouseholdRoleUseCase } from '../../domain/usecases/EnsureHou
 import type { ListPendingInvitationsUseCase } from '../../domain/usecases/ListPendingInvitationsUseCase.js';
 import type { ListHouseholdInvitationsUseCase } from '../../domain/usecases/ListHouseholdInvitationsUseCase.js';
 import type { ResolveInvitationUseCase } from '../../domain/usecases/ResolveInvitationUseCase.js';
+import type { ResendInvitationUseCase } from '../../domain/usecases/ResendInvitationUseCase.js';
 import { invitationEmailRuntime } from '../../data/services/email/invitationEmailRuntime.js';
 import {
   paramsSchema,
@@ -29,6 +30,7 @@ export const registerInvitationRoutes = (
     resolveInvitationUseCase: ResolveInvitationUseCase;
     acceptInvitationUseCase: AcceptInvitationUseCase;
     cancelInvitationUseCase: CancelInvitationUseCase;
+    resendInvitationUseCase: ResendInvitationUseCase;
   },
 ) => {
   // POST /v1/households/:householdId/invitations/bulk - Create bulk invitations
@@ -55,9 +57,9 @@ export const registerInvitationRoutes = (
                   firstName: { type: 'string' },
                   lastName: { type: 'string' },
                   email: { type: 'string', format: 'email' },
-                  role: { type: 'string', enum: ['senior', 'caregiver'] },
+                  role: { type: 'string', enum: ['senior', 'caregiver', 'family', 'intervenant'] },
                 },
-                required: ['firstName', 'lastName', 'email', 'role'],
+                required: ['email', 'role'],
               },
             },
           },
@@ -117,7 +119,18 @@ export const registerInvitationRoutes = (
       const paramsResult = paramsSchema.safeParse(request.params);
       const payloadResult = bulkInvitationBodySchema.safeParse(request.body);
 
+      console.log('[INVITE] Received bulk invitation request:', {
+        householdId: request.params,
+        body: request.body,
+        paramsValid: paramsResult.success,
+        payloadValid: payloadResult.success,
+      });
+
       if (!paramsResult.success || !payloadResult.success) {
+        console.error('[INVITE] Validation failed:', {
+          paramsError: paramsResult.success ? null : paramsResult.error,
+          payloadError: payloadResult.success ? null : payloadResult.error,
+        });
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',
@@ -418,6 +431,106 @@ export const registerInvitationRoutes = (
         const message = error instanceof Error ? error.message : 'Unexpected error.';
         const statusCode =
           message === 'Access denied to this invitation.'
+            ? 403
+            : message === 'Invitation not found.'
+              ? 404
+              : 409;
+
+        return reply.status(statusCode).send({
+          status: 'error',
+          message,
+        });
+      }
+    },
+  );
+
+  // POST /v1/households/:householdId/invitations/:invitationId/resend - Resend invitation
+  fastify.post(
+    '/v1/households/:householdId/invitations/:invitationId/resend',
+    {
+      schema: {
+        tags: ['Invitations'],
+        params: {
+          type: 'object',
+          properties: {
+            householdId: { type: 'string' },
+            invitationId: { type: 'string' },
+          },
+          required: ['householdId', 'invitationId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  newExpiresAt: { type: 'string' },
+                },
+                required: ['newExpiresAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = cancelInvitationParamsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      try {
+        const result = await useCases.resendInvitationUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          invitationId: paramsResult.data.invitationId,
+          requester: request.requester,
+        });
+
+        // Get the invitation to extract invitee details for email
+        const invitations = await repository.listHouseholdInvitations(paramsResult.data.householdId);
+        const invitation = invitations.find((inv) => inv.id === paramsResult.data.invitationId);
+
+        if (invitation) {
+          // Queue the email with the new token
+          invitationEmailRuntime.queue.enqueueBulk([{
+            invitationId: paramsResult.data.invitationId,
+            inviteeEmail: invitation.inviteeEmail,
+            inviteeFirstName: invitation.inviteeFirstName,
+            assignedRole: invitation.assignedRole,
+            deepLinkUrl: result.deepLinkUrl,
+            fallbackUrl: result.fallbackUrl,
+          }]);
+        }
+
+        await repository.logAuditEvent({
+          householdId: paramsResult.data.householdId,
+          actorUserId: request.requester.userId,
+          action: 'invitation_resent',
+          targetId: paramsResult.data.invitationId,
+          metadata: {
+            requesterEmailMasked: maskEmail(request.requester.email),
+          },
+        });
+
+        return reply.status(200).send({
+          status: 'success',
+          data: { newExpiresAt: result.newExpiresAt },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unexpected error.';
+        const statusCode =
+          message === 'Only caregivers can resend invitations.'
             ? 403
             : message === 'Invitation not found.'
               ? 404

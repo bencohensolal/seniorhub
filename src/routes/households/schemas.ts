@@ -15,10 +15,10 @@ export const createHouseholdBodySchema = z.object({
 });
 
 export const invitationCandidateSchema = z.object({
-  firstName: z.string().min(1).max(80),
-  lastName: z.string().min(1).max(80),
+  firstName: z.string().max(80).optional().default(''),
+  lastName: z.string().max(80).optional().default(''),
   email: z.string().email(),
-  role: z.enum(['senior', 'caregiver']),
+  role: z.enum(['senior', 'caregiver', 'family', 'intervenant']),
 });
 
 export const bulkInvitationBodySchema = z.object({

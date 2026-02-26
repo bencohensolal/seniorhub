@@ -135,7 +135,15 @@
 	- App currently shows: "Invitation from John Doe" + "ID: abc123..."
 	- Should show: "Invitation to 'Smith Family' from John Doe"
 
-### 11) Invitation management for household admins
+### 11) Email delivery configuration
+
+- [ ] **ACTION REQUIRED:** Configure email provider for production
+	- Current: Console mode (emails logged but not sent)
+	- Recommended: Set up Resend in Railway environment
+	- Alternative: Implement Gmail SMTP provider for free testing
+	- Documentation: See `docs/RESEND_SETUP.md` and `docs/EMAIL_OPTIONS.md`
+
+### 12) Invitation management for household admins
 
 - [x] **RESOLVED:** Bulk invitation endpoint now working - invitations persisted successfully
 	- Root cause: App was sending empty lastName which backend rejected with 400 error
@@ -143,18 +151,25 @@
 	- Result: Invitations are now successfully created in `household_invitations` table
 	- Status: Backend accepts invitations and returns `acceptedCount: 1`
 
-- [ ] **NEW CRITICAL ISSUE:** Email delivery not working
-	- Invitations are created successfully in database
-	- Backend returns success: `acceptedCount: 1`, `deliveries: [{status: "queued"}]`
-	- But invited users don't receive invitation emails
-	- **Diagnosis needed:**
-		- Check email provider configuration (SMTP credentials, API keys)
-		- Verify background job queue is running and processing
-		- Check email job execution logs for errors
-		- Verify email template rendering works
-		- Check for rate limiting or provider blocks
-		- Test email sending manually with same credentials
-	- **Impact:** Users cannot accept invitations without email link
+- [x] **DIAGNOSED:** Email delivery not working - Expected behavior in development mode
+	- **Root Cause:** Backend is configured with `EMAIL_PROVIDER=console` (development mode)
+	- **Current Behavior:** Invitations created successfully, but emails only logged to console
+	- **System Status:** ✅ Working as designed - email queue, templates, and providers all functional
+	- **To Enable Real Emails:** Choose one option:
+		1. **Resend (Recommended for production)** - Already implemented
+			- Set Railway env: `EMAIL_PROVIDER=resend`
+			- Set Railway env: `RESEND_API_KEY=re_your_key`
+			- Set Railway env: `EMAIL_FROM=Senior Hub <noreply@domain.com>`
+			- See: `docs/RESEND_SETUP.md` for complete guide
+			- Cost: Free tier (100/day, 3000/month), then $20/month
+		2. **Gmail SMTP (Best for testing)** - Not yet implemented
+			- Would need to create `GmailEmailProvider` class
+			- Free: 500 emails/day
+			- Simple setup with app password
+			- See: `docs/EMAIL_OPTIONS.md` for all options
+	- **Next Steps:** 
+		- For production: Configure Resend API key in Railway
+		- For testing: Can implement Gmail SMTP provider if needed
 
 - [x] `GET /v1/households/:householdId/invitations` - List sent invitations
 	- Authorization: only household members can view

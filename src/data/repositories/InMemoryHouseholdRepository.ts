@@ -217,12 +217,22 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
         continue;
       }
 
+      const household = households.find((h) => h.id === input.householdId);
+      if (!household) {
+        result.perUserErrors.push({
+          email,
+          reason: 'Household not found.',
+        });
+        continue;
+      }
+
       const createdAt = nowIso();
       const invitationId = randomUUID();
       const token = signInvitationToken(invitationId, env.TOKEN_SIGNING_SECRET);
       const invitation: HouseholdInvitation = {
         id: invitationId,
         householdId: input.householdId,
+        householdName: household.name,
         inviterUserId: input.inviterUserId,
         inviteeEmail: email,
         inviteeFirstName: user.firstName.trim(),

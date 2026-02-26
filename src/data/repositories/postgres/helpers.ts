@@ -48,6 +48,7 @@ export const mapMember = (row: {
 export const mapInvitation = (row: {
   id: string;
   household_id: string;
+  household_name: string;
   inviter_user_id: string;
   invitee_email: string;
   invitee_first_name: string;
@@ -61,6 +62,7 @@ export const mapInvitation = (row: {
 }): HouseholdInvitation => ({
   id: row.id,
   householdId: row.household_id,
+  householdName: row.household_name,
   inviterUserId: row.inviter_user_id,
   inviteeEmail: row.invitee_email,
   inviteeFirstName: row.invitee_first_name,

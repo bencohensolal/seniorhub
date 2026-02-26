@@ -5,6 +5,7 @@ export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'cancelled';
 export interface HouseholdInvitation {
   id: string;
   householdId: string;
+  householdName: string;
   inviterUserId: string;
   inviteeEmail: string;
   inviteeFirstName: string;

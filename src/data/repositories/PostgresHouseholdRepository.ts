@@ -332,6 +332,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      household_name: string;
       inviter_user_id: string;
       invitee_email: string;
       invitee_first_name: string;
@@ -343,12 +344,14 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
-      `SELECT id, household_id, inviter_user_id, invitee_email, invitee_first_name, invitee_last_name,
-              assigned_role, token_hash, token_expires_at, status, created_at, accepted_at
-       FROM household_invitations
-       WHERE invitee_email = $1
-         AND status = 'pending'
-       ORDER BY created_at DESC`,
+      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
+              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
+              i.token_expires_at, i.status, i.created_at, i.accepted_at
+       FROM household_invitations i
+       JOIN households h ON h.id = i.household_id
+       WHERE i.invitee_email = $1
+         AND i.status = 'pending'
+       ORDER BY i.created_at DESC`,
       [normalizedEmail],
     );
 
@@ -363,6 +366,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      household_name: string;
       inviter_user_id: string;
       invitee_email: string;
       invitee_first_name: string;
@@ -374,10 +378,12 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
-      `SELECT id, household_id, inviter_user_id, invitee_email, invitee_first_name, invitee_last_name,
-              assigned_role, token_hash, token_expires_at, status, created_at, accepted_at
-       FROM household_invitations
-       WHERE token_hash = $1
+      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
+              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
+              i.token_expires_at, i.status, i.created_at, i.accepted_at
+       FROM household_invitations i
+       JOIN households h ON h.id = i.household_id
+       WHERE i.token_hash = $1
        LIMIT 1`,
       [hashToken(token)],
     );

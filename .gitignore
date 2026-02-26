@@ -3,16 +3,16 @@ __pycache__/
 *.pyc
 
 # Node
-api/node_modules/
+node_modules/
 
 # Build outputs
-api/dist/
+dist/
 
 # Env files
-api/.env
-api/.env.local
-api/.env.*
-!api/.env.example
+.env
+.env.local
+.env.*
+!.env.example
 
 # Logs
 *.log

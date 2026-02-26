@@ -137,11 +137,26 @@
 
 ### 11) Email delivery configuration
 
-- [ ] **ACTION REQUIRED:** Configure email provider for production
-	- Current: Console mode (emails logged but not sent)
-	- Recommended: Set up Resend in Railway environment
-	- Alternative: Implement Gmail SMTP provider for free testing
-	- Documentation: See `docs/RESEND_SETUP.md` and `docs/EMAIL_OPTIONS.md`
+- [x] **IMPLEMENTED:** Gmail SMTP provider added as free alternative ✅
+	- Gmail SMTP provider fully implemented and tested
+	- 100% free (500 emails/day)
+	- No domain verification required
+	- Works immediately with Gmail App Password
+	- Complete setup guide: `docs/GMAIL_SMTP_SETUP.md`
+
+- [ ] **ACTION REQUIRED:** Configure email provider in Railway
+	- **Option 1 (Recommended for testing):** Gmail SMTP
+		- Set `EMAIL_PROVIDER=gmail`
+		- Set `GMAIL_USER=your-email@gmail.com`
+		- Set `GMAIL_APP_PASSWORD=your-16-char-password`
+		- Set `EMAIL_FROM=Senior Hub <your-email@gmail.com>`
+		- See: `docs/GMAIL_SMTP_SETUP.md`
+	- **Option 2 (For production):** Resend (requires domain verification)
+		- Set `EMAIL_PROVIDER=resend`
+		- Set `RESEND_API_KEY=re_your_key`
+		- Set `EMAIL_FROM=Senior Hub <noreply@your-domain.com>`
+		- See: `docs/RESEND_SETUP.md`
+	- **Current:** Console mode (emails logged but not sent)
 
 ### 12) Invitation management for household admins
 

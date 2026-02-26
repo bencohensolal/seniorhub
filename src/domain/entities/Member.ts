@@ -1,4 +1,4 @@
-export type HouseholdRole = 'senior' | 'caregiver';
+export type HouseholdRole = 'senior' | 'caregiver' | 'family' | 'intervenant';
 export type HouseholdMemberStatus = 'active' | 'pending';
 
 export interface Member {

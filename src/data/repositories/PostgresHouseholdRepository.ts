@@ -601,6 +601,93 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }
   }
 
+  async resendInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    requesterUserId: string;
+  }): Promise<{ newToken: string; newExpiresAt: string; deepLinkUrl: string; fallbackUrl: string | null }> {
+    const client = await this.pool.connect();
+    let transactionCommitted = false;
+
+    try {
+      await client.query('BEGIN');
+
+      const requester = await client.query<{ role: HouseholdRole }>(
+        `SELECT role
+         FROM household_members
+         WHERE household_id = $1 AND user_id = $2 AND status = 'active'
+         LIMIT 1`,
+        [input.householdId, input.requesterUserId],
+      );
+
+      const requesterRole = requester.rows[0]?.role;
+      if (requesterRole !== 'caregiver') {
+        throw new Error('Only caregivers can resend invitations.');
+      }
+
+      const invitation = await client.query<{
+        id: string;
+        status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+        token_expires_at: string | Date;
+      }>(
+        `SELECT id, status, token_expires_at
+         FROM household_invitations
+         WHERE id = $1 AND household_id = $2
+         LIMIT 1
+         FOR UPDATE`,
+        [input.invitationId, input.householdId],
+      );
+
+      const invitationRow = invitation.rows[0];
+      if (!invitationRow) {
+        throw new Error('Invitation not found.');
+      }
+
+      if (invitationRow.status !== 'pending') {
+        throw new Error('Can only resend pending invitations.');
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(invitationRow.token_expires_at);
+      if (expiresAt <= now) {
+        throw new Error('Cannot resend expired invitation. Please cancel and create a new one.');
+      }
+
+      const newExpiresAt = addHours(nowIso(), INVITATION_TTL_HOURS);
+      const newToken = signInvitationToken(input.invitationId, env.TOKEN_SIGNING_SECRET);
+      const newTokenHash = hashToken(newToken);
+
+      await client.query(
+        `UPDATE household_invitations
+         SET token_hash = $2, token_expires_at = $3
+         WHERE id = $1`,
+        [input.invitationId, newTokenHash, newExpiresAt],
+      );
+
+      await client.query('COMMIT');
+      transactionCommitted = true;
+
+      const links = buildInvitationLinks({
+        token: newToken,
+        ...(env.INVITATION_WEB_FALLBACK_URL ? { fallbackBaseUrl: env.INVITATION_WEB_FALLBACK_URL } : {}),
+      });
+
+      return {
+        newToken,
+        newExpiresAt,
+        deepLinkUrl: links.deepLinkUrl,
+        fallbackUrl: links.fallbackUrl,
+      };
+    } catch (error) {
+      if (!transactionCommitted) {
+        await client.query('ROLLBACK');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   async logAuditEvent(input: AuditEventInput): Promise<void> {
     await this.pool.query(
       `INSERT INTO audit_events (id, household_id, actor_user_id, action, target_id, metadata, created_at)

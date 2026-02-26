@@ -52,6 +52,11 @@ export interface HouseholdRepository {
     invitationId: string;
     requesterUserId: string;
   }): Promise<void>;
+  resendInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    requesterUserId: string;
+  }): Promise<{ newToken: string; newExpiresAt: string; deepLinkUrl: string; fallbackUrl: string | null }>;
   removeMember(memberId: string): Promise<void>;
   updateMemberRole(memberId: string, newRole: HouseholdRole): Promise<Member>;
   logAuditEvent(input: AuditEventInput): Promise<void>;

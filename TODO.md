@@ -137,14 +137,24 @@
 
 ### 11) Invitation management for household admins
 
-- [ ] **CRITICAL BUG:** Bulk invitation endpoint not persisting invitations
-	- When calling `POST /v1/households/:householdId/invitations/bulk`, invitations are not saved to DB
-	- No records appear in `household_invitations` table
-	- No emails are sent
-	- Issue observed: user invites member through app, nothing happens
-	- **CODE REVIEW**: Repository code appears correct - uses pool.query which auto-commits
-	- Likely causes: deployment issue, environment configuration, or database connectivity problem
-	- Next steps: Test endpoint directly, check Railway logs, verify database connection
+- [x] **RESOLVED:** Bulk invitation endpoint now working - invitations persisted successfully
+	- Root cause: App was sending empty lastName which backend rejected with 400 error
+	- Fix: App now sends fallback "User" for lastName when email has no dot separator
+	- Result: Invitations are now successfully created in `household_invitations` table
+	- Status: Backend accepts invitations and returns `acceptedCount: 1`
+
+- [ ] **NEW CRITICAL ISSUE:** Email delivery not working
+	- Invitations are created successfully in database
+	- Backend returns success: `acceptedCount: 1`, `deliveries: [{status: "queued"}]`
+	- But invited users don't receive invitation emails
+	- **Diagnosis needed:**
+		- Check email provider configuration (SMTP credentials, API keys)
+		- Verify background job queue is running and processing
+		- Check email job execution logs for errors
+		- Verify email template rendering works
+		- Check for rate limiting or provider blocks
+		- Test email sending manually with same credentials
+	- **Impact:** Users cannot accept invitations without email link
 
 - [x] `GET /v1/households/:householdId/invitations` - List sent invitations
 	- Authorization: only household members can view

@@ -1,29 +1,17 @@
-fix(invitations): make resolve and accept endpoints public for guest users
+debug(invitations): add logging to diagnose 403 errors after accepting
 
-Root cause of authentication errors:
-- Users accepting invitations are not yet household members
-- They don't have authentication context when clicking email links
-- /resolve and /accept endpoints were requiring full authentication
-- This blocked the entire invitation acceptance flow
+Adding comprehensive logging to identify why users get 403 errors
+when accessing household details immediately after accepting invitation.
 
-Solution:
-- Add invitation endpoints to public list in authContext plugin:
-  * /v1/invitations/accept-link (already public)
-  * /v1/households/invitations/resolve (now public)
-  * /v1/households/invitations/accept (now public with manual auth extraction)
+Debug logs added:
+- AcceptInvitation route: Log requester userId/email before acceptance
+- AcceptInvitation route: Log success with householdId/role/userId
+- GetHouseholdOverviewUseCase: Log access check parameters
+- GetHouseholdOverviewUseCase: Log whether member was found
 
-- Update /accept endpoint to manually extract auth headers from request
-- Auth headers still required for /accept but validated in handler not globally
-- /resolve endpoint fully public (no auth needed to view invitation details)
+This will help identify if the issue is:
+1. userId mismatch between accept and subsequent requests
+2. Race condition (member not yet visible)
+3. Transaction not properly committed
 
-Changes:
-- src/plugins/authContext.ts: Add invitation endpoints to publicEndpoints array
-- src/routes/households/invitationRoutes.ts: Manual auth extraction in /accept handler
-
-User flow now works:
-1. User clicks email link → redirects to app (no auth needed)
-2. App calls /resolve to fetch invitation details (no auth needed)
-3. User logs in/signs up → app gets auth headers from Supabase
-4. App calls /accept with auth headers → member created successfully
-
-This fixes "authentication context is missing" errors during invitation acceptance.
+Temporary logging for production debugging - will be removed once root cause identified.

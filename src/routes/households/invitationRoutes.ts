@@ -521,6 +521,13 @@ export const registerInvitationRoutes = (
 
       const requester = { userId, email, firstName, lastName };
 
+      console.log('[AcceptInvitation] Requester info:', {
+        userId: requester.userId,
+        email: requester.email,
+        firstName: requester.firstName,
+        lastName: requester.lastName,
+      });
+
       const payloadResult = acceptBodySchema.safeParse(request.body);
       if (!payloadResult.success) {
         return reply.status(400).send({
@@ -536,9 +543,17 @@ export const registerInvitationRoutes = (
             ? { invitationId: payloadResult.data.invitationId }
             : {};
 
+        console.log('[AcceptInvitation] About to accept invitation:', invitationIdentifier);
+
         const result = await useCases.acceptInvitationUseCase.execute({
           requester,
           ...invitationIdentifier,
+        });
+
+        console.log('[AcceptInvitation] Invitation accepted successfully:', {
+          householdId: result.householdId,
+          role: result.role,
+          userId: requester.userId,
         });
 
         await repository.logAuditEvent({

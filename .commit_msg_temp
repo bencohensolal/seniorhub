@@ -1,20 +1,29 @@
-fix(medications): make autocomplete endpoint truly public (no auth)
+fix(invitations): make resolve and accept endpoints public for guest users
 
-Root cause of 401 errors:
-- Mobile app was receiving 401 Unauthorized responses
-- registerAuthContext plugin was enforcing auth on ALL routes
-- Only /health was exempted from authentication
-- Medication autocomplete needs to be public for CORS proxy use case
+Root cause of authentication errors:
+- Users accepting invitations are not yet household members
+- They don't have authentication context when clicking email links
+- /resolve and /accept endpoints were requiring full authentication
+- This blocked the entire invitation acceptance flow
 
 Solution:
-- Add /v1/medications/autocomplete to public endpoints list
-- Update authContext plugin to check multiple public endpoints
-- Remove authentication-related code from route handler
-- Update documentation to clarify endpoint is truly public
+- Add invitation endpoints to public list in authContext plugin:
+  * /v1/invitations/accept-link (already public)
+  * /v1/households/invitations/resolve (now public)
+  * /v1/households/invitations/accept (now public with manual auth extraction)
+
+- Update /accept endpoint to manually extract auth headers from request
+- Auth headers still required for /accept but validated in handler not globally
+- /resolve endpoint fully public (no auth needed to view invitation details)
 
 Changes:
-- src/plugins/authContext.ts: Add publicEndpoints array with autocomplete
-- src/routes/medicationRoutes.ts: Remove requester logging, clarify no auth
+- src/plugins/authContext.ts: Add invitation endpoints to publicEndpoints array
+- src/routes/households/invitationRoutes.ts: Manual auth extraction in /accept handler
 
-This fixes the 401 errors preventing the mobile app from searching
-French medications. The endpoint now works without authentication headers.
+User flow now works:
+1. User clicks email link → redirects to app (no auth needed)
+2. App calls /resolve to fetch invitation details (no auth needed)
+3. User logs in/signs up → app gets auth headers from Supabase
+4. App calls /accept with auth headers → member created successfully
+
+This fixes "authentication context is missing" errors during invitation acceptance.

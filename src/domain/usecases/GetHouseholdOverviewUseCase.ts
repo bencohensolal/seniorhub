@@ -5,10 +5,17 @@ export class GetHouseholdOverviewUseCase {
   constructor(private readonly repository: HouseholdRepository) {}
 
   async execute(input: { householdId: string; requesterUserId: string }): Promise<HouseholdOverview> {
+    console.log('[GetHouseholdOverview] Checking access:', {
+      requesterUserId: input.requesterUserId,
+      householdId: input.householdId,
+    });
+
     const member = await this.repository.findActiveMemberByUserInHousehold(
       input.requesterUserId,
       input.householdId,
     );
+
+    console.log('[GetHouseholdOverview] Member found:', member ? 'YES' : 'NO', member);
 
     if (!member) {
       throw new Error('Access denied to this household.');

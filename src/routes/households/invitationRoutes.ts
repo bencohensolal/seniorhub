@@ -395,12 +395,13 @@ export const registerInvitationRoutes = (
     },
   );
 
-  // GET /v1/households/invitations/resolve - Resolve invitation by token
+  // GET /v1/households/invitations/resolve - Resolve invitation by token (PUBLIC)
   fastify.get(
     '/v1/households/invitations/resolve',
     {
       schema: {
         tags: ['Invitations'],
+        description: 'Public endpoint - no authentication required',
         querystring: {
           type: 'object',
           properties: { token: { type: 'string' } },
@@ -440,7 +441,6 @@ export const registerInvitationRoutes = (
             required: ['status', 'data'],
           },
           400: errorResponseSchema,
-          401: errorResponseSchema,
           404: errorResponseSchema,
         },
       },
@@ -465,12 +465,13 @@ export const registerInvitationRoutes = (
     },
   );
 
-  // POST /v1/households/invitations/accept - Accept invitation
+  // POST /v1/households/invitations/accept - Accept invitation (PUBLIC - requires auth headers)
   fastify.post(
     '/v1/households/invitations/accept',
     {
       schema: {
         tags: ['Invitations'],
+        description: 'Public endpoint - requires authentication headers in request',
         body: {
           type: 'object',
           properties: {
@@ -504,6 +505,22 @@ export const registerInvitationRoutes = (
       },
     },
     async (request, reply) => {
+      // Extract authentication manually since this is a public endpoint
+      const normalize = (value: string | undefined): string => (value && value.trim().length > 0 ? value.trim() : '');
+      const userId = normalize(request.headers['x-user-id'] as string | undefined);
+      const email = normalize(request.headers['x-user-email'] as string | undefined);
+      const firstName = normalize(request.headers['x-user-first-name'] as string | undefined);
+      const lastName = normalize(request.headers['x-user-last-name'] as string | undefined);
+
+      if (!userId || !email || !firstName || !lastName) {
+        return reply.status(401).send({
+          status: 'error',
+          message: 'Authentication headers required (x-user-id, x-user-email, x-user-first-name, x-user-last-name).',
+        });
+      }
+
+      const requester = { userId, email, firstName, lastName };
+
       const payloadResult = acceptBodySchema.safeParse(request.body);
       if (!payloadResult.success) {
         return reply.status(400).send({
@@ -520,17 +537,17 @@ export const registerInvitationRoutes = (
             : {};
 
         const result = await useCases.acceptInvitationUseCase.execute({
-          requester: request.requester,
+          requester,
           ...invitationIdentifier,
         });
 
         await repository.logAuditEvent({
           householdId: result.householdId,
-          actorUserId: request.requester.userId,
+          actorUserId: requester.userId,
           action: 'invitation_accepted',
           targetId: payloadResult.data.invitationId ?? payloadResult.data.token ?? 'pending-email-selection',
           metadata: {
-            requesterEmailMasked: maskEmail(request.requester.email),
+            requesterEmailMasked: maskEmail(requester.email),
           },
         });
 

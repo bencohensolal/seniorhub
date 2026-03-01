@@ -463,63 +463,30 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const client = await this.pool.connect();
     let transactionCommitted = false;
 
-    console.log('[PostgresHouseholdRepository] ========================================');
-    console.log('[PostgresHouseholdRepository] acceptInvitation called with:', {
-      requester: {
-        userId: input.requester.userId,
-        email: input.requester.email,
-        firstName: input.requester.firstName,
-        lastName: input.requester.lastName,
-      },
-      hasToken: !!input.token,
-      token: input.token ? input.token.substring(0, 8) + '...' : undefined,
-      hasInvitationId: !!input.invitationId,
-      invitationId: input.invitationId,
-    });
-
     try {
       if (input.token && !isInvitationTokenValid(input.token, env.TOKEN_SIGNING_SECRET)) {
-        console.error('[PostgresHouseholdRepository] ❌ Token validation failed');
         throw new Error('Invitation not found.');
       }
 
       const normalizedEmail = normalizeEmail(input.requester.email);
-      console.log('[PostgresHouseholdRepository] Normalized email:', normalizedEmail);
 
       await client.query('BEGIN');
-      console.log('[PostgresHouseholdRepository] Transaction started');
 
       const invitation = await this.findInvitationForAccept(client, input, normalizedEmail);
 
       if (!invitation) {
-        console.error('[PostgresHouseholdRepository] ❌ Invitation not found');
         throw new Error('Invitation not found.');
       }
 
-      console.log('[PostgresHouseholdRepository] Invitation found:', {
-        id: invitation.id,
-        householdId: invitation.household_id,
-        inviteeEmail: invitation.invitee_email,
-        assignedRole: invitation.assigned_role,
-        status: invitation.status,
-        tokenExpiresAt: invitation.token_expires_at,
-      });
-
       if (invitation.invitee_email !== normalizedEmail) {
-        console.error('[PostgresHouseholdRepository] ❌ Email mismatch:', {
-          invitationEmail: invitation.invitee_email,
-          requesterEmail: normalizedEmail,
-        });
         throw new Error('Access denied to this invitation.');
       }
 
       if (invitation.status !== 'pending') {
-        console.error('[PostgresHouseholdRepository] ❌ Invitation not pending, status:', invitation.status);
         throw new Error('Invitation is not pending.');
       }
 
       if (new Date(invitation.token_expires_at) <= new Date()) {
-        console.error('[PostgresHouseholdRepository] ❌ Invitation expired');
         await client.query(
           `UPDATE household_invitations
            SET status = 'expired'
@@ -532,7 +499,6 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       }
 
       const acceptedAt = nowIso();
-      console.log('[PostgresHouseholdRepository] Updating invitation status to accepted');
 
       await client.query(
         `UPDATE household_invitations
@@ -541,18 +507,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
         [invitation.id, acceptedAt],
       );
 
-      console.log('[PostgresHouseholdRepository] Creating household member with:', {
-        householdId: invitation.household_id,
-        userId: input.requester.userId,
-        email: normalizedEmail,
-        firstName: normalizeName(input.requester.firstName),
-        lastName: normalizeName(input.requester.lastName),
-        role: invitation.assigned_role,
-        status: 'active',
-        joinedAt: acceptedAt,
-      });
-
-      const memberInsertResult = await client.query(
+      await client.query(
         `INSERT INTO household_members
          (id, household_id, user_id, email, first_name, last_name, role, status, joined_at, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $8)
@@ -563,8 +518,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
            last_name = EXCLUDED.last_name,
            role = EXCLUDED.role,
            status = 'active',
-           joined_at = EXCLUDED.joined_at
-         RETURNING id, household_id, user_id, email, first_name, last_name, role, status`,
+           joined_at = EXCLUDED.joined_at`,
         [
           randomUUID(),
           invitation.household_id,
@@ -577,29 +531,15 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
         ],
       );
 
-      console.log('[PostgresHouseholdRepository] ✅ Member inserted/updated:', {
-        rowCount: memberInsertResult.rowCount,
-        member: memberInsertResult.rows[0],
-      });
-
       await client.query('COMMIT');
       transactionCommitted = true;
-
-      console.log('[PostgresHouseholdRepository] ✅ Transaction committed successfully');
-      console.log('[PostgresHouseholdRepository] Returning:', {
-        householdId: invitation.household_id,
-        role: invitation.assigned_role,
-      });
-      console.log('[PostgresHouseholdRepository] ========================================');
 
       return {
         householdId: invitation.household_id,
         role: invitation.assigned_role,
       };
     } catch (error) {
-      console.error('[PostgresHouseholdRepository] ❌ Error in acceptInvitation:', error);
       if (!transactionCommitted) {
-        console.log('[PostgresHouseholdRepository] Rolling back transaction');
         await client.query('ROLLBACK');
       }
       throw error;

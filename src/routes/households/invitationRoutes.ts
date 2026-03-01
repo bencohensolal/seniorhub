@@ -105,27 +105,16 @@ export const registerInvitationRoutes = (
         const userAgent = request.headers['user-agent'];
         const isMobile = isMobileDevice(userAgent);
 
-        console.info('[Invitations] Smart redirect for invitation acceptance:', {
-          token: token.substring(0, 8) + '...',
-          userAgent,
-          isMobile,
-        });
-
         let redirectUrl: string;
 
         if (isMobile) {
           // Redirect to mobile app deep link with token
           // App should call POST /v1/households/invitations/accept with this token + auth headers
           redirectUrl = `seniorhub://invitation/accept?token=${encodeURIComponent(token)}`;
-          console.info('[Invitations] Redirecting to mobile app with token:', {
-            redirectUrl: redirectUrl.substring(0, 50) + '...',
-            tokenPreview: token.substring(0, 8) + '...',
-          });
         } else {
           // Redirect to web frontend with token
           const frontendUrl = env.FRONTEND_URL;
           redirectUrl = `${frontendUrl}/accept-invitation?token=${encodeURIComponent(token)}`;
-          console.info('[Invitations] Redirecting to web frontend:', redirectUrl);
         }
 
         return reply.redirect(redirectUrl, 302);
@@ -230,18 +219,7 @@ export const registerInvitationRoutes = (
       const paramsResult = paramsSchema.safeParse(request.params);
       const payloadResult = bulkInvitationBodySchema.safeParse(request.body);
 
-      console.info('[INVITE] Received bulk invitation request:', {
-        householdId: request.params,
-        body: request.body,
-        paramsValid: paramsResult.success,
-        payloadValid: payloadResult.success,
-      });
-
       if (!paramsResult.success || !payloadResult.success) {
-        console.error('[INVITE] Validation failed:', {
-          paramsError: paramsResult.success ? null : paramsResult.error,
-          payloadError: payloadResult.success ? null : payloadResult.error,
-        });
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',
@@ -576,13 +554,6 @@ export const registerInvitationRoutes = (
 
       const requester = { userId, email, firstName, lastName };
 
-      console.log('[AcceptInvitation] Requester info:', {
-        userId: requester.userId,
-        email: requester.email,
-        firstName: requester.firstName,
-        lastName: requester.lastName,
-      });
-
       const payloadResult = acceptBodySchema.safeParse(request.body);
       if (!payloadResult.success) {
         return reply.status(400).send({
@@ -598,17 +569,9 @@ export const registerInvitationRoutes = (
             ? { invitationId: payloadResult.data.invitationId }
             : {};
 
-        console.log('[AcceptInvitation] About to accept invitation:', invitationIdentifier);
-
         const result = await useCases.acceptInvitationUseCase.execute({
           requester,
           ...invitationIdentifier,
-        });
-
-        console.log('[AcceptInvitation] Invitation accepted successfully:', {
-          householdId: result.householdId,
-          role: result.role,
-          userId: requester.userId,
         });
 
         await repository.logAuditEvent({

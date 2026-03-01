@@ -1,6 +1,6 @@
-import type { HouseholdInvitation } from '../entities/Invitation.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { NotFoundError } from '../errors/DomainErrors.js';
+import type { HouseholdInvitation } from '../../entities/Invitation.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { NotFoundError } from '../../errors/DomainErrors.js';
 
 export class ResolveInvitationUseCase {
   constructor(private readonly repository: HouseholdRepository) {}

@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import type { ListHouseholdMedicationsUseCase } from '../../domain/usecases/ListHouseholdMedicationsUseCase.js';
-import type { CreateMedicationUseCase } from '../../domain/usecases/CreateMedicationUseCase.js';
-import type { UpdateMedicationUseCase } from '../../domain/usecases/UpdateMedicationUseCase.js';
-import type { DeleteMedicationUseCase } from '../../domain/usecases/DeleteMedicationUseCase.js';
+import type { ListHouseholdMedicationsUseCase } from '../../domain/usecases/medications/ListHouseholdMedicationsUseCase.js';
+import type { CreateMedicationUseCase } from '../../domain/usecases/medications/CreateMedicationUseCase.js';
+import type { UpdateMedicationUseCase } from '../../domain/usecases/medications/UpdateMedicationUseCase.js';
+import type { DeleteMedicationUseCase } from '../../domain/usecases/medications/DeleteMedicationUseCase.js';
 import { paramsSchema, errorResponseSchema } from './schemas.js';
 import {
   createMedicationBodySchema,

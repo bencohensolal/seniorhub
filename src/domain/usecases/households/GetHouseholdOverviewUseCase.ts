@@ -1,7 +1,7 @@
-import type { HouseholdOverview } from '../entities/Household.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/HouseholdAccessValidator.js';
-import { NotFoundError } from '../errors/DomainErrors.js';
+import type { HouseholdOverview } from '../../entities/Household.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/HouseholdAccessValidator.js';
+import { NotFoundError } from '../../errors/DomainErrors.js';
 
 export class GetHouseholdOverviewUseCase {
   private readonly accessValidator: HouseholdAccessValidator;

@@ -1,6 +1,6 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { BulkInvitationResult, HouseholdRepository, InvitationCandidate } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { BulkInvitationResult, HouseholdRepository, InvitationCandidate } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
 
 /**
  * Creates multiple invitations in bulk for a household.

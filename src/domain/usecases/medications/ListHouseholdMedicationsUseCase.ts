@@ -1,7 +1,7 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { Medication } from '../entities/Medication.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { Medication } from '../../entities/Medication.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
 
 /**
  * Lists all medications in a household.

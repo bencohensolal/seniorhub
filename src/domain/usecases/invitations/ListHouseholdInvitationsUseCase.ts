@@ -1,6 +1,6 @@
-import type { HouseholdInvitation } from '../entities/Invitation.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/HouseholdAccessValidator.js';
+import type { HouseholdInvitation } from '../../entities/Invitation.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/HouseholdAccessValidator.js';
 
 export class ListHouseholdInvitationsUseCase {
   private readonly accessValidator: HouseholdAccessValidator;

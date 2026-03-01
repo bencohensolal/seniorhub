@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InMemoryHouseholdRepository } from '../../data/repositories/InMemoryHouseholdRepository.js';
+import { InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
 import { GetHouseholdOverviewUseCase } from './GetHouseholdOverviewUseCase.js';
 
 describe('GetHouseholdOverviewUseCase', () => {

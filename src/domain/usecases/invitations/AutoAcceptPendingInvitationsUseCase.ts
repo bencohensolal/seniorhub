@@ -1,6 +1,6 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdRole } from '../entities/Member.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { HouseholdRole } from '../../entities/Member.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
 
 export interface AutoAcceptResult {
   acceptedCount: number;

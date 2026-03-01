@@ -1,5 +1,5 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
 
 /**
  * Cancels a pending invitation.

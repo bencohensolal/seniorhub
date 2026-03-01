@@ -1,13 +1,14 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
-import { NotFoundError } from '../errors/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { MedicationReminder, UpdateReminderInput } from '../../entities/MedicationReminder.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
+import { NotFoundError } from '../../errors/index.js';
 
 /**
- * Deletes a medication reminder from a household.
- * Only caregivers can delete reminders.
+ * Updates an existing medication reminder in a household.
+ * Only caregivers can update reminders.
  */
-export class DeleteReminderUseCase {
+export class UpdateReminderUseCase {
   private readonly accessValidator: HouseholdAccessValidator;
 
   constructor(private readonly repository: HouseholdRepository) {
@@ -15,7 +16,8 @@ export class DeleteReminderUseCase {
   }
 
   /**
-   * @param input - Reminder deletion data with requester info
+   * @param input - Reminder update data with requester info
+   * @returns The updated reminder
    * @throws {ForbiddenError} If requester is not a caregiver
    * @throws {NotFoundError} If medication or reminder doesn't exist
    */
@@ -24,7 +26,8 @@ export class DeleteReminderUseCase {
     medicationId: string;
     householdId: string;
     requester: AuthenticatedRequester;
-  }): Promise<void> {
+    data: UpdateReminderInput;
+  }): Promise<MedicationReminder> {
     // Validate caregiver access
     await this.accessValidator.ensureCaregiver(input.requester.userId, input.householdId);
 
@@ -40,6 +43,11 @@ export class DeleteReminderUseCase {
       throw new NotFoundError('Reminder not found.');
     }
 
-    return this.repository.deleteReminder(input.reminderId, input.medicationId, input.householdId);
+    return this.repository.updateReminder(
+      input.reminderId,
+      input.medicationId,
+      input.householdId,
+      input.data,
+    );
   }
 }

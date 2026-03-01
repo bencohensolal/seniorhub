@@ -1,4 +1,4 @@
-import { ValidationError } from '../errors/DomainErrors.js';
+import { ValidationError } from '../../errors/DomainErrors.js';
 
 /**
  * MedicationAutocompleteUseCase

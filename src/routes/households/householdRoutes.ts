@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import type { CreateHouseholdUseCase } from '../../domain/usecases/CreateHouseholdUseCase.js';
-import type { GetHouseholdOverviewUseCase } from '../../domain/usecases/GetHouseholdOverviewUseCase.js';
-import type { LeaveHouseholdUseCase } from '../../domain/usecases/LeaveHouseholdUseCase.js';
-import type { ListHouseholdMembersUseCase } from '../../domain/usecases/ListHouseholdMembersUseCase.js';
-import type { ListUserHouseholdsUseCase } from '../../domain/usecases/ListUserHouseholdsUseCase.js';
-import type { RemoveHouseholdMemberUseCase } from '../../domain/usecases/RemoveHouseholdMemberUseCase.js';
-import type { UpdateHouseholdMemberRoleUseCase } from '../../domain/usecases/UpdateHouseholdMemberRoleUseCase.js';
+import type { CreateHouseholdUseCase } from '../../domain/usecases/households/CreateHouseholdUseCase.js';
+import type { GetHouseholdOverviewUseCase } from '../../domain/usecases/households/GetHouseholdOverviewUseCase.js';
+import type { LeaveHouseholdUseCase } from '../../domain/usecases/households/LeaveHouseholdUseCase.js';
+import type { ListHouseholdMembersUseCase } from '../../domain/usecases/households/ListHouseholdMembersUseCase.js';
+import type { ListUserHouseholdsUseCase } from '../../domain/usecases/households/ListUserHouseholdsUseCase.js';
+import type { RemoveHouseholdMemberUseCase } from '../../domain/usecases/households/RemoveHouseholdMemberUseCase.js';
+import type { UpdateHouseholdMemberRoleUseCase } from '../../domain/usecases/households/UpdateHouseholdMemberRoleUseCase.js';
 import { createHouseholdBodySchema, paramsSchema, errorResponseSchema } from './schemas.js';
 import { handleDomainError } from '../errorHandler.js';
 

@@ -1,6 +1,6 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdInvitation } from '../entities/Invitation.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { HouseholdInvitation } from '../../entities/Invitation.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
 
 export class ListPendingInvitationsUseCase {
   constructor(private readonly repository: HouseholdRepository) {}

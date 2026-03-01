@@ -1,7 +1,7 @@
-import type { HouseholdRole } from '../entities/Member.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/HouseholdAccessValidator.js';
-import { ForbiddenError } from '../errors/DomainErrors.js';
+import type { HouseholdRole } from '../../entities/Member.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/HouseholdAccessValidator.js';
+import { ForbiddenError } from '../../errors/DomainErrors.js';
 
 export class EnsureHouseholdRoleUseCase {
   private readonly accessValidator: HouseholdAccessValidator;

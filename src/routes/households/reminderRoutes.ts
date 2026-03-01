@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
-import type { ListMedicationRemindersUseCase } from '../../domain/usecases/ListMedicationRemindersUseCase.js';
-import type { CreateReminderUseCase } from '../../domain/usecases/CreateReminderUseCase.js';
-import type { UpdateReminderUseCase } from '../../domain/usecases/UpdateReminderUseCase.js';
-import type { DeleteReminderUseCase } from '../../domain/usecases/DeleteReminderUseCase.js';
+import type { ListMedicationRemindersUseCase } from '../../domain/usecases/reminders/ListMedicationRemindersUseCase.js';
+import type { CreateReminderUseCase } from '../../domain/usecases/reminders/CreateReminderUseCase.js';
+import type { UpdateReminderUseCase } from '../../domain/usecases/reminders/UpdateReminderUseCase.js';
+import type { DeleteReminderUseCase } from '../../domain/usecases/reminders/DeleteReminderUseCase.js';
 import { errorResponseSchema } from './schemas.js';
 import {
   medicationParamsSchema,

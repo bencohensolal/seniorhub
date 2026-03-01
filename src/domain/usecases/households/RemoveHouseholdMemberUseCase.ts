@@ -1,7 +1,7 @@
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import { HouseholdAccessValidator } from './shared/index.js';
-import { NotFoundError, ConflictError, BusinessRuleError } from '../errors/index.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
+import { NotFoundError, ConflictError, BusinessRuleError } from '../../errors/index.js';
 
 export interface RemoveHouseholdMemberInput {
   householdId: string;

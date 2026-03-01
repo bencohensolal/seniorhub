@@ -292,12 +292,9 @@ export function registerMedicationRoutes(
           required: ['householdId', 'medicationId'],
         },
         response: {
-          200: {
-            type: 'object',
-            properties: {
-              status: { type: 'string', enum: ['success'] },
-            },
-            required: ['status'],
+          204: {
+            type: 'null',
+            description: 'Medication deleted successfully',
           },
           400: errorResponseSchema,
           403: errorResponseSchema,
@@ -322,9 +319,7 @@ export function registerMedicationRoutes(
           requester: request.requester,
         });
 
-        return reply.status(200).send({
-          status: 'success',
-        });
+        return reply.status(204).send();
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unexpected error.';
         

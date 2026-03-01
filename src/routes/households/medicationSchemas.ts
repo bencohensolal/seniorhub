@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 // Time validation regex for HH:MM format (00:00 to 23:59)
-const TIME_REGEX = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+// Also accepts legacy format with days: "HH:MM|1,2,3,4,5"
+const TIME_REGEX = /^([0-1][0-9]|2[0-3]):[0-5][0-9](\|[\d,]+)?$/;
 
 // Medication form enum schema
 export const medicationFormSchema = z.enum([

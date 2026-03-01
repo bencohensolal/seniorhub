@@ -11,7 +11,7 @@ export class ListHouseholdInvitationsUseCase {
 
   async execute(input: { householdId: string; requesterUserId: string }): Promise<HouseholdInvitation[]> {
     // Verify requester is a member of the household
-    await this.accessValidator.ensureMember(input.householdId, input.requesterUserId);
+    await this.accessValidator.ensureMember(input.requesterUserId, input.householdId);
 
     return this.repository.listHouseholdInvitations(input.householdId);
   }

@@ -11,7 +11,7 @@ export class GetHouseholdOverviewUseCase {
   }
 
   async execute(input: { householdId: string; requesterUserId: string }): Promise<HouseholdOverview> {
-    await this.accessValidator.ensureMember(input.householdId, input.requesterUserId);
+    await this.accessValidator.ensureMember(input.requesterUserId, input.householdId);
 
     const overview = await this.repository.getOverviewById(input.householdId);
 

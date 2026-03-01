@@ -19,6 +19,26 @@ export const buildApp = () => {
         remove: true,
       },
     },
+    // Allow empty bodies for DELETE requests with Content-Type: application/json
+    ignoreTrailingSlash: true,
+  });
+
+  // Override default JSON parser to allow empty bodies on DELETE requests
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    // Allow empty body for DELETE requests
+    if (req.method === 'DELETE' && body === '') {
+      done(null, undefined);
+      return;
+    }
+    
+    try {
+      const json = JSON.parse(body as string);
+      done(null, json);
+    } catch (err: any) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
   });
 
   app.get('/health', async () => {

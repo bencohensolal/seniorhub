@@ -904,6 +904,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      senior_id: string;
       name: string;
       dosage: string;
       form: MedicationForm;
@@ -918,7 +919,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       updated_at: string | Date;
     }>(
-      `SELECT id, household_id, name, dosage, form, frequency, schedule,
+      `SELECT id, household_id, senior_id, name, dosage, form, frequency, schedule,
               prescribed_by, prescription_date, start_date, end_date, instructions,
               created_by_user_id, created_at, updated_at
        FROM medications
@@ -934,6 +935,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      senior_id: string;
       name: string;
       dosage: string;
       form: MedicationForm;
@@ -948,7 +950,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       updated_at: string | Date;
     }>(
-      `SELECT id, household_id, name, dosage, form, frequency, schedule,
+      `SELECT id, household_id, senior_id, name, dosage, form, frequency, schedule,
               prescribed_by, prescription_date, start_date, end_date, instructions,
               created_by_user_id, created_at, updated_at
        FROM medications
@@ -968,6 +970,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      senior_id: string;
       name: string;
       dosage: string;
       form: MedicationForm;
@@ -983,17 +986,18 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       updated_at: string | Date;
     }>(
       `INSERT INTO medications (
-         id, household_id, name, dosage, form, frequency, schedule,
+         id, household_id, senior_id, name, dosage, form, frequency, schedule,
          prescribed_by, prescription_date, start_date, end_date, instructions,
          created_by_user_id, created_at, updated_at
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $14)
-       RETURNING id, household_id, name, dosage, form, frequency, schedule,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $15)
+       RETURNING id, household_id, senior_id, name, dosage, form, frequency, schedule,
                  prescribed_by, prescription_date, start_date, end_date, instructions,
                  created_by_user_id, created_at, updated_at`,
       [
         id,
         input.householdId,
+        input.seniorId,
         input.name,
         input.dosage,
         input.form,
@@ -1077,6 +1081,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
+      senior_id: string;
       name: string;
       dosage: string;
       form: MedicationForm;
@@ -1094,7 +1099,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       `UPDATE medications
        SET ${updates.join(', ')}
        WHERE id = $${paramIndex++} AND household_id = $${paramIndex++}
-       RETURNING id, household_id, name, dosage, form, frequency, schedule,
+       RETURNING id, household_id, senior_id, name, dosage, form, frequency, schedule,
                  prescribed_by, prescription_date, start_date, end_date, instructions,
                  created_by_user_id, created_at, updated_at`,
       values,

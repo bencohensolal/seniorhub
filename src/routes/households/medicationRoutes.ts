@@ -136,6 +136,7 @@ export function registerMedicationRoutes(
         const inputData: any = {
           householdId: paramsResult.data.householdId,
           requester: request.requester,
+          seniorId: bodyResult.data.seniorId,
           name: bodyResult.data.name,
           dosage: bodyResult.data.dosage,
           form: bodyResult.data.form,

@@ -13,23 +13,25 @@ export type MedicationForm =
 export interface Medication {
   id: string;
   householdId: string;
+  seniorId: string; // ID of the household member this medication is for
   name: string;
   dosage: string;
   form: MedicationForm;
   frequency: string;
-  schedule: string[]; // Array of time strings in HH:MM format, e.g., ["08:00", "20:00"]
+  schedule: string[]; // Array of time strings (e.g., ["08:00", "20:00"])
   prescribedBy: string | null;
   prescriptionDate: string | null; // ISO date string
   startDate: string; // ISO date string
   endDate: string | null; // ISO date string
   instructions: string | null;
   createdByUserId: string;
-  createdAt: string; // ISO timestamp
-  updatedAt: string; // ISO timestamp
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateMedicationInput {
   householdId: string;
+  seniorId: string; // Required: medication must be assigned to a senior
   name: string;
   dosage: string;
   form: MedicationForm;

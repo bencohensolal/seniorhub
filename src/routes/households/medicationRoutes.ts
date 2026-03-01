@@ -126,11 +126,17 @@ export function registerMedicationRoutes(
       const bodyResult = createMedicationBodySchema.safeParse(request.body);
 
       if (!paramsResult.success || !bodyResult.success) {
+        console.error('[CreateMedication] Validation failed:', {
+          paramsError: paramsResult.success ? null : paramsResult.error.format(),
+          bodyError: bodyResult.success ? null : bodyResult.error.format(),
+          receivedBody: request.body,
+        });
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',
         });
       }
+
 
       try {
         const inputData: any = {

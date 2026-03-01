@@ -338,8 +338,7 @@ export const registerInvitationRoutes = (
           data: invitations.map(sanitizeInvitation),
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unexpected error.';
-        return reply.status(403).send({ status: 'error', message });
+        return handleDomainError(error, reply);
       }
     },
   );
@@ -486,8 +485,7 @@ export const registerInvitationRoutes = (
           data: sanitizeInvitation(invitation),
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unexpected error.';
-        return reply.status(404).send({ status: 'error', message });
+        return handleDomainError(error, reply);
       }
     },
   );

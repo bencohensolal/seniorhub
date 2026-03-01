@@ -15,9 +15,11 @@ export class CreateMedicationUseCase {
       throw new Error('Only caregivers can create medications.');
     }
 
+    const { requester, ...medicationData } = input;
+
     return this.repository.createMedication({
-      ...input,
-      createdByUserId: input.requester.userId,
+      ...medicationData,
+      createdByUserId: requester.userId,
     });
   }
 }

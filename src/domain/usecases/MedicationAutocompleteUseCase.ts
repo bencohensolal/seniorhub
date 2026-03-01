@@ -1,3 +1,5 @@
+import { ValidationError } from '../errors/DomainErrors.js';
+
 /**
  * MedicationAutocompleteUseCase
  * 
@@ -20,11 +22,11 @@ export class MedicationAutocompleteUseCase {
 
     // Validate term length
     if (term.length < 2) {
-      throw new Error('Search term must be at least 2 characters long');
+      throw new ValidationError('Search term must be at least 2 characters long');
     }
 
     if (term.length > 100) {
-      throw new Error('Search term must not exceed 100 characters');
+      throw new ValidationError('Search term must not exceed 100 characters');
     }
 
     // Route to appropriate API based on locale

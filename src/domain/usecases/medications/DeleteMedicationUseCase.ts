@@ -1,6 +1,6 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
 
 /**
  * Deletes a medication from a household.

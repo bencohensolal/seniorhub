@@ -1,7 +1,7 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { Medication, CreateMedicationInput } from '../entities/Medication.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { Medication, CreateMedicationInput } from '../../entities/Medication.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
 
 /**
  * Creates a new medication for a senior in a household.

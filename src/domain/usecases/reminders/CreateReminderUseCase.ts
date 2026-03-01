@@ -1,8 +1,8 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { MedicationReminder, CreateReminderInput } from '../entities/MedicationReminder.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import { HouseholdAccessValidator } from './shared/index.js';
-import { NotFoundError } from '../errors/index.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { MedicationReminder, CreateReminderInput } from '../../entities/MedicationReminder.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import { HouseholdAccessValidator } from '../shared/index.js';
+import { NotFoundError } from '../../errors/index.js';
 
 /**
  * Creates a new medication reminder in a household.

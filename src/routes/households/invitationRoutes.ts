@@ -1,14 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
-import type { AcceptInvitationUseCase } from '../../domain/usecases/AcceptInvitationUseCase.js';
-import type { CancelInvitationUseCase } from '../../domain/usecases/CancelInvitationUseCase.js';
-import type { CreateBulkInvitationsUseCase } from '../../domain/usecases/CreateBulkInvitationsUseCase.js';
-import type { EnsureHouseholdRoleUseCase } from '../../domain/usecases/EnsureHouseholdRoleUseCase.js';
-import type { ListPendingInvitationsUseCase } from '../../domain/usecases/ListPendingInvitationsUseCase.js';
-import type { ListHouseholdInvitationsUseCase } from '../../domain/usecases/ListHouseholdInvitationsUseCase.js';
-import type { ResolveInvitationUseCase } from '../../domain/usecases/ResolveInvitationUseCase.js';
-import type { ResendInvitationUseCase } from '../../domain/usecases/ResendInvitationUseCase.js';
-import type { AutoAcceptPendingInvitationsUseCase } from '../../domain/usecases/AutoAcceptPendingInvitationsUseCase.js';
+import type { AcceptInvitationUseCase } from '../../domain/usecases/invitations/AcceptInvitationUseCase.js';
+import type { CancelInvitationUseCase } from '../../domain/usecases/invitations/CancelInvitationUseCase.js';
+import type { CreateBulkInvitationsUseCase } from '../../domain/usecases/invitations/CreateBulkInvitationsUseCase.js';
+import type { EnsureHouseholdRoleUseCase } from '../../domain/usecases/households/EnsureHouseholdRoleUseCase.js';
+import type { ListPendingInvitationsUseCase } from '../../domain/usecases/invitations/ListPendingInvitationsUseCase.js';
+import type { ListHouseholdInvitationsUseCase } from '../../domain/usecases/invitations/ListHouseholdInvitationsUseCase.js';
+import type { ResolveInvitationUseCase } from '../../domain/usecases/invitations/ResolveInvitationUseCase.js';
+import type { ResendInvitationUseCase } from '../../domain/usecases/invitations/ResendInvitationUseCase.js';
+import type { AutoAcceptPendingInvitationsUseCase } from '../../domain/usecases/invitations/AutoAcceptPendingInvitationsUseCase.js';
 import { invitationEmailRuntime } from '../../data/services/email/invitationEmailRuntime.js';
 import { env } from '../../config/env.js';
 import {

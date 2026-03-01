@@ -8,7 +8,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { MedicationAutocompleteUseCase } from '../domain/usecases/MedicationAutocompleteUseCase.js';
+import { MedicationAutocompleteUseCase } from '../domain/usecases/medications/MedicationAutocompleteUseCase.js';
 import { handleDomainError } from './errorHandler.js';
 
 // Validation schemas

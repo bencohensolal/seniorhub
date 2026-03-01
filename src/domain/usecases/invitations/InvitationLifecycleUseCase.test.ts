@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InMemoryHouseholdRepository } from '../../data/repositories/InMemoryHouseholdRepository.js';
+import { InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
 import { AcceptInvitationUseCase } from './AcceptInvitationUseCase.js';
 import { CancelInvitationUseCase } from './CancelInvitationUseCase.js';
 import { CreateBulkInvitationsUseCase } from './CreateBulkInvitationsUseCase.js';

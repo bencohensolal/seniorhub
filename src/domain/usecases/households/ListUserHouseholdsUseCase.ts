@@ -1,5 +1,5 @@
-import type { HouseholdRepository, UserHouseholdMembership } from '../repositories/HouseholdRepository.js';
-import type { AuthenticatedRequester } from '../entities/Household.js';
+import type { HouseholdRepository, UserHouseholdMembership } from '../../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
 
 export class ListUserHouseholdsUseCase {
   constructor(private readonly repository: HouseholdRepository) {}

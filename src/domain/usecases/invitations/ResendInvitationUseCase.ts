@@ -1,5 +1,5 @@
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
 
 /**
  * Resends an invitation with a new token and expiration date.

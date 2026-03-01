@@ -1,7 +1,7 @@
-import type { HouseholdRepository } from '../repositories/HouseholdRepository.js';
-import type { AuthenticatedRequester } from '../entities/Household.js';
-import type { Member } from '../entities/Member.js';
-import { HouseholdAccessValidator } from './shared/HouseholdAccessValidator.js';
+import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
+import type { AuthenticatedRequester } from '../../entities/Household.js';
+import type { Member } from '../../entities/Member.js';
+import { HouseholdAccessValidator } from '../shared/HouseholdAccessValidator.js';
 
 export class ListHouseholdMembersUseCase {
   private readonly accessValidator: HouseholdAccessValidator;

@@ -1,40 +1,36 @@
 # TODO Backend
 
-## 🔍 URGENT: Debug Invitation Acceptance Flow
+## ✅ Completed
 
-### Logs ajoutés dans PostgresHouseholdRepository.acceptInvitation()
+- [x] Initial project setup with TypeScript, Fastify, and PostgreSQL
+- [x] Household onboarding endpoints (create household, list households)
+- [x] Invitation system (create, accept, cancel, resend invitations)
+- [x] Email delivery with Resend and Gmail SMTP providers
+- [x] Deep link handling for mobile app invitations
+- [x] Audit events for tracking invitation lifecycle
+- [x] Member management (list, remove, update role)
+- [x] Medication CRUD endpoints (create, read, update, delete)
+- [x] Medication autocomplete with French drug database integration
+- [x] Migration 005: Fix UUID issue for Google OAuth user IDs in medications
+- [x] Fix DELETE endpoint to return 204 No Content
+- [x] Fix Fastify JSON parser to allow empty body on DELETE requests
 
-Des logs détaillés ont été ajoutés pour debugger pourquoi les utilisateurs invités ne deviennent pas membres:
+## 🔍 In Progress / Debug
 
-**Logs ajoutés:**
-- ✅ Requester info (userId, email, firstName, lastName)
-- ✅ Token validation
-- ✅ Email normalization
-- ✅ Transaction start
-- ✅ Invitation found (id, householdId, email, role, status, expires)
-- ✅ Email match validation
-- ✅ Status validation (pending)
-- ✅ Expiration check
-- ✅ Invitation update (status = accepted)
-- ✅ Member creation (INSERT with ON CONFLICT)
-- ✅ Member insertion result (rowCount, member data)
-- ✅ Transaction commit
-- ✅ All errors logged
+### Invitation Acceptance Flow Investigation
+- [x] Add detailed logs in PostgresHouseholdRepository.acceptInvitation()
+- [x] Logs show requester info, token validation, invitation found, member creation
+- [ ] Monitor Railway logs to identify if issue is in app or backend
+- [ ] Verify members are created correctly in production database
+- [ ] Document findings in INVITATION_DEBUGGING_SUMMARY.md
 
-**Ce que les logs vont montrer:**
-1. Si l'appel arrive au backend (si pas de logs → app n'appelle pas)
-2. Si le token est valide
-3. Si l'invitation est trouvée
-4. Si l'email correspond
-5. Si le membre est bien inséré dans la DB
-6. Si la transaction est bien commitée
-
-**Prochaines étapes:**
-1. Déployer backend avec logs
-2. Tester avec app mobile (mec95200@gmail.com)
-3. Regarder logs Railway pour diagnostic
-4. Si appel n'arrive pas → problème dans l'app
-5. Si appel arrive mais pas de membre → problème SQL/transaction
+**Debug checklist:**
+- [x] Verify endpoint is called from mobile app
+- [x] Check token validation works
+- [x] Confirm invitation is found in database
+- [x] Validate email matching logic
+- [x] Ensure member INSERT/UPDATE executes
+- [x] Confirm transaction commits successfully
 
 ---
 
@@ -104,6 +100,62 @@ Content-Type: application/json
 3. Stocker le token
 4. Attendre que user s'authentifie
 5. Appeler POST /v1/households/invitations/accept avec le token
+
+---
+
+## 📅 Système de rappels de médicaments avancé
+
+### Besoin
+
+Le système actuel de rappels (`schedule: string[]`) est trop simple. Il faut permettre :
+- Rappels avec sélection des jours de la semaine (ex: "lundi-vendredi à 8h")
+- Plusieurs rappels avec des règles différentes par médicament
+- Activation/désactivation individuelle des rappels
+
+### Structure proposée
+
+**Nouvelle table `medication_reminders` :**
+```sql
+CREATE TABLE medication_reminders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  medication_id UUID NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+  time TIME NOT NULL,                    -- Heure du rappel (ex: 08:00)
+  days_of_week INTEGER[] NOT NULL,       -- Jours: 0=Dimanche, 1=Lundi, ..., 6=Samedi
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_medication_reminders_medication ON medication_reminders(medication_id);
+```
+
+**Exemples de configuration:**
+- Tous les jours à 8h: `{time: '08:00', days_of_week: [0,1,2,3,4,5,6]}`
+- Lundi-vendredi à 8h: `{time: '08:00', days_of_week: [1,2,3,4,5]}`
+- Lundi-mercredi-vendredi à 8h et 20h: 
+  - `{time: '08:00', days_of_week: [1,3,5]}`
+  - `{time: '20:00', days_of_week: [1,3,5]}`
+
+### Endpoints à créer
+
+**POST /v1/households/:householdId/medications/:medicationId/reminders**
+- Créer un nouveau rappel pour un médicament
+
+**GET /v1/households/:householdId/medications/:medicationId/reminders**
+- Lister tous les rappels d'un médicament
+
+**PUT /v1/households/:householdId/medications/:medicationId/reminders/:reminderId**
+- Modifier un rappel (heure, jours, actif/inactif)
+
+**DELETE /v1/households/:householdId/medications/:medicationId/reminders/:reminderId**
+- Supprimer un rappel
+
+### Migration
+
+1. Créer table `medication_reminders`
+2. Migrer données existantes de `medications.schedule` vers les nouveaux reminders
+3. Garder `medications.schedule` pour rétrocompatibilité temporaire
+4. Déprécier puis supprimer `medications.schedule` après migration app
 
 ---
 

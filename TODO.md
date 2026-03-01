@@ -34,131 +34,80 @@
 
 ---
 
-## Endpoints Disponibles
+## 📝 Reference Documentation
 
-### POST /v1/households/invitations/accept
+### Existing Endpoints
 
-**URL:** `https://seniorhub-backend-production.up.railway.app/v1/households/invitations/accept`
+#### POST /v1/households/invitations/accept
+- [x] Endpoint implemented and tested
+- **URL:** `https://seniorhub-backend-production.up.railway.app/v1/households/invitations/accept`
+- **Authentication:** Required (x-user-id, x-user-email, x-user-first-name, x-user-last-name headers)
+- **Functionality:** Validates token, creates member, updates invitation status
 
-**Method:** POST
-
-**Headers (Required):**
-```
-x-user-id: <supabase_user_id>
-x-user-email: <user_email>
-x-user-first-name: <first_name>
-x-user-last-name: <last_name>
-Content-Type: application/json
-```
-
-**Body:**
-```json
-{
-  "token": "22db9a60-6852-4b6c-a5a9-49d216f5b89e..."
-}
-```
-
-**Response Success (200):**
-```json
-{
-  "status": "success",
-  "data": {
-    "householdId": "3617e173-d359-492b-94b7-4c32622e7526",
-    "role": "caregiver"
-  }
-}
-```
-
-**Ce que fait cet endpoint:**
-1. Valide le token
-2. Trouve l'invitation correspondante
-3. Vérifie que l'email du requester correspond à l'invitation
-4. Met à jour l'invitation (status = 'accepted')
-5. **CRÉE LE MEMBRE** dans household_members avec status = 'active'
-6. Retourne householdId et role
-
-**Note:** Le code crée bien le membre. Si le membre n'apparaît pas, c'est soit:
-- L'appel n'arrive jamais au backend
-- Une erreur se produit (logs montreront laquelle)
-- La transaction est rollback (logs montreront pourquoi)
+#### GET /v1/invitations/accept-link (PUBLIC)
+- [x] Endpoint implemented and tested
+- **URL:** `https://seniorhub-backend-production.up.railway.app/v1/invitations/accept-link?token=XXX`
+- **Functionality:** Handles deep link redirection for mobile app (seniorhub://) or web
 
 ---
 
-### GET /v1/invitations/accept-link (PUBLIC)
+## 📅 Future Features
 
-**URL:** `https://seniorhub-backend-production.up.railway.app/v1/invitations/accept-link?token=XXX`
+### Advanced Medication Reminders System
 
-**Ce que fait cet endpoint:**
-1. Valide le token
-2. Détecte si mobile (User-Agent)
-3. Si mobile → redirige vers `seniorhub://invitation/accept?token=XXX`
-4. Si web → redirige vers frontend web
+**Status:** 🔮 Planned (not started)
 
-**Important:** Ce endpoint fait la redirection vers l'app mobile. L'app doit ensuite:
-1. Recevoir le deep link
-2. Extraire le token
-3. Stocker le token
-4. Attendre que user s'authentifie
-5. Appeler POST /v1/households/invitations/accept avec le token
+**Objective:** Replace simple `schedule: string[]` with flexible reminder rules
 
----
+**Requirements:**
+- [ ] Support day-of-week selection (e.g., "Monday-Friday at 8am")
+- [ ] Allow multiple reminders per medication with different rules
+- [ ] Enable/disable individual reminders
 
-## 📅 Système de rappels de médicaments avancé
+**Database Design:**
+- [ ] Create `medication_reminders` table with:
+  - `id`, `medication_id`, `time`, `days_of_week[]`, `enabled`
+  - Foreign key cascade delete on medication deletion
+  - Index on `medication_id`
 
-### Besoin
+**API Endpoints to Create:**
+- [ ] POST `/v1/households/:householdId/medications/:medicationId/reminders` - Create reminder
+- [ ] GET `/v1/households/:householdId/medications/:medicationId/reminders` - List reminders
+- [ ] PUT `/v1/households/:householdId/medications/:medicationId/reminders/:reminderId` - Update reminder
+- [ ] DELETE `/v1/households/:householdId/medications/:medicationId/reminders/:reminderId` - Delete reminder
 
-Le système actuel de rappels (`schedule: string[]`) est trop simple. Il faut permettre :
-- Rappels avec sélection des jours de la semaine (ex: "lundi-vendredi à 8h")
-- Plusieurs rappels avec des règles différentes par médicament
-- Activation/désactivation individuelle des rappels
+**Migration Strategy:**
+- [ ] Create new `medication_reminders` table (migration 006)
+- [ ] Migrate existing `medications.schedule` data to new table
+- [ ] Keep `medications.schedule` for backward compatibility during transition
+- [ ] Deprecate and eventually remove `medications.schedule` after app migration
 
-### Structure proposée
-
-**Nouvelle table `medication_reminders` :**
-```sql
-CREATE TABLE medication_reminders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  medication_id UUID NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
-  time TIME NOT NULL,                    -- Heure du rappel (ex: 08:00)
-  days_of_week INTEGER[] NOT NULL,       -- Jours: 0=Dimanche, 1=Lundi, ..., 6=Samedi
-  enabled BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_medication_reminders_medication ON medication_reminders(medication_id);
-```
-
-**Exemples de configuration:**
-- Tous les jours à 8h: `{time: '08:00', days_of_week: [0,1,2,3,4,5,6]}`
-- Lundi-vendredi à 8h: `{time: '08:00', days_of_week: [1,2,3,4,5]}`
-- Lundi-mercredi-vendredi à 8h et 20h: 
-  - `{time: '08:00', days_of_week: [1,3,5]}`
-  - `{time: '20:00', days_of_week: [1,3,5]}`
-
-### Endpoints à créer
-
-**POST /v1/households/:householdId/medications/:medicationId/reminders**
-- Créer un nouveau rappel pour un médicament
-
-**GET /v1/households/:householdId/medications/:medicationId/reminders**
-- Lister tous les rappels d'un médicament
-
-**PUT /v1/households/:householdId/medications/:medicationId/reminders/:reminderId**
-- Modifier un rappel (heure, jours, actif/inactif)
-
-**DELETE /v1/households/:householdId/medications/:medicationId/reminders/:reminderId**
-- Supprimer un rappel
-
-### Migration
-
-1. Créer table `medication_reminders`
-2. Migrer données existantes de `medications.schedule` vers les nouveaux reminders
-3. Garder `medications.schedule` pour rétrocompatibilité temporaire
-4. Déprécier puis supprimer `medications.schedule` après migration app
+**Example Configurations:**
+- Daily at 8am: `{time: '08:00', days_of_week: [0,1,2,3,4,5,6]}`
+- Weekdays at 8am: `{time: '08:00', days_of_week: [1,2,3,4,5]}`
+- Mon/Wed/Fri at 8am & 8pm: Two reminders with `days_of_week: [1,3,5]`
 
 ---
 
-## Autres endpoints en attente
+## 🎯 Additional Future Endpoints
 
-_(liste des autres fonctionnalités à implémenter)_
+### Medication Tracking & History
+- [ ] POST `/v1/households/:householdId/medications/:medicationId/doses` - Log dose taken
+- [ ] GET `/v1/households/:householdId/medications/:medicationId/history` - View dose history
+- [ ] GET `/v1/households/:householdId/medications/:medicationId/adherence` - Calculate adherence rate
+
+### Health Monitoring
+- [ ] POST `/v1/households/:householdId/health-records` - Add vital signs, symptoms
+- [ ] GET `/v1/households/:householdId/health-records` - Retrieve health timeline
+- [ ] GET `/v1/households/:householdId/health-reports` - Generate health summary reports
+
+### Document Management
+- [ ] POST `/v1/households/:householdId/documents` - Upload medical documents
+- [ ] GET `/v1/households/:householdId/documents` - List documents
+- [ ] DELETE `/v1/households/:householdId/documents/:documentId` - Remove document
+
+### Caregiver Coordination
+- [ ] POST `/v1/households/:householdId/tasks` - Create care tasks
+- [ ] GET `/v1/households/:householdId/tasks` - List tasks with assignments
+- [ ] PATCH `/v1/households/:householdId/tasks/:taskId` - Update task status
+- [ ] POST `/v1/households/:householdId/notes` - Share care notes between caregivers

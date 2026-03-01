@@ -14,6 +14,12 @@ import type {
   InvitationCandidate,
 } from '../../domain/repositories/HouseholdRepository.js';
 import {
+  NotFoundError,
+  ForbiddenError,
+  ConflictError,
+  ValidationError,
+} from '../../domain/errors/index.js';
+import {
   nowIso,
   addHours,
   toIso,
@@ -465,7 +471,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     try {
       if (input.token && !isInvitationTokenValid(input.token, env.TOKEN_SIGNING_SECRET)) {
-        throw new Error('Invitation not found.');
+        throw new NotFoundError('Invitation not found.');
       }
 
       const normalizedEmail = normalizeEmail(input.requester.email);
@@ -475,15 +481,15 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       const invitation = await this.findInvitationForAccept(client, input, normalizedEmail);
 
       if (!invitation) {
-        throw new Error('Invitation not found.');
+        throw new NotFoundError('Invitation not found.');
       }
 
       if (invitation.invitee_email !== normalizedEmail) {
-        throw new Error('Access denied to this invitation.');
+        throw new ForbiddenError('Access denied to this invitation.');
       }
 
       if (invitation.status !== 'pending') {
-        throw new Error('Invitation is not pending.');
+        throw new ConflictError('Invitation is not pending.');
       }
 
       if (new Date(invitation.token_expires_at) <= new Date()) {
@@ -495,7 +501,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
         );
         await client.query('COMMIT');
         transactionCommitted = true;
-        throw new Error('Invitation expired. Please request a new invitation.');
+        throw new ConflictError('Invitation expired. Please request a new invitation.');
       }
 
       const acceptedAt = nowIso();
@@ -569,7 +575,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
       const requesterRole = requester.rows[0]?.role;
       if (requesterRole !== 'caregiver') {
-        throw new Error('Only caregivers can cancel invitations.');
+        throw new ForbiddenError('Only caregivers can cancel invitations.');
       }
 
       const invitation = await client.query<{ id: string; status: 'pending' | 'accepted' | 'expired' | 'cancelled' }>(
@@ -583,11 +589,11 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
       const invitationRow = invitation.rows[0];
       if (!invitationRow) {
-        throw new Error('Invitation not found.');
+        throw new NotFoundError('Invitation not found.');
       }
 
       if (invitationRow.status !== 'pending') {
-        throw new Error('Invitation is not pending.');
+        throw new ConflictError('Invitation is not pending.');
       }
 
       await client.query(
@@ -630,7 +636,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
       const requesterRole = requester.rows[0]?.role;
       if (requesterRole !== 'caregiver') {
-        throw new Error('Only caregivers can resend invitations.');
+        throw new ForbiddenError('Only caregivers can resend invitations.');
       }
 
       const invitation = await client.query<{
@@ -648,17 +654,17 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
       const invitationRow = invitation.rows[0];
       if (!invitationRow) {
-        throw new Error('Invitation not found.');
+        throw new NotFoundError('Invitation not found.');
       }
 
       if (invitationRow.status !== 'pending') {
-        throw new Error('Can only resend pending invitations.');
+        throw new ConflictError('Can only resend pending invitations.');
       }
 
       const now = new Date();
       const expiresAt = new Date(invitationRow.token_expires_at);
       if (expiresAt <= now) {
-        throw new Error('Cannot resend expired invitation. Please cancel and create a new one.');
+        throw new ConflictError('Cannot resend expired invitation. Please cancel and create a new one.');
       }
 
       const newExpiresAt = addHours(nowIso(), INVITATION_TTL_HOURS);
@@ -760,7 +766,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     if (!row) {
-      throw new Error('Member not found or already removed.');
+      throw new NotFoundError('Member not found or already removed.');
     }
 
     return mapMember(row);
@@ -955,7 +961,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     if (!row) {
-      throw new Error('Failed to create medication.');
+      throw new NotFoundError('Failed to create medication.');
     }
 
     return mapMedication(row);
@@ -1008,7 +1014,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }
 
     if (updates.length === 0) {
-      throw new Error('No fields to update.');
+      throw new ValidationError('No fields to update.');
     }
 
     const now = nowIso();
@@ -1047,7 +1053,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     if (!row) {
-      throw new Error('Medication not found.');
+      throw new NotFoundError('Medication not found.');
     }
 
     return mapMedication(row);
@@ -1061,7 +1067,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     );
 
     if (result.rowCount === 0) {
-      throw new Error('Medication not found.');
+      throw new NotFoundError('Medication not found.');
     }
   }
 
@@ -1132,7 +1138,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     if (!row) {
-      throw new Error('Failed to create reminder.');
+      throw new NotFoundError('Failed to create reminder.');
     }
 
     return mapReminder(row);
@@ -1157,7 +1163,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }
 
     if (updates.length === 0) {
-      throw new Error('No fields to update.');
+      throw new ValidationError('No fields to update.');
     }
 
     const now = nowIso();
@@ -1186,7 +1192,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     const row = result.rows[0];
     if (!row) {
-      throw new Error('Reminder not found.');
+      throw new NotFoundError('Reminder not found.');
     }
 
     return mapReminder(row);
@@ -1201,7 +1207,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     );
 
     if (result.rowCount === 0) {
-      throw new Error('Reminder not found.');
+      throw new NotFoundError('Reminder not found.');
     }
   }
 }

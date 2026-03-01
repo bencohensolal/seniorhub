@@ -12,7 +12,7 @@ export class ListHouseholdMembersUseCase {
 
   async execute(input: { householdId: string; requester: AuthenticatedRequester }): Promise<Member[]> {
     // Verify requester is a member of this household
-    await this.accessValidator.ensureMember(input.householdId, input.requester.userId);
+    await this.accessValidator.ensureMember(input.requester.userId, input.householdId);
 
     // Get all active members of the household
     const members = await this.repository.listHouseholdMembers(input.householdId);

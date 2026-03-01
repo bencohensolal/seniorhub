@@ -80,6 +80,7 @@ export const mapInvitation = (row: {
 export const mapMedication = (row: {
   id: string;
   household_id: string;
+  senior_id: string;
   name: string;
   dosage: string;
   form: MedicationForm;
@@ -96,6 +97,7 @@ export const mapMedication = (row: {
 }): Medication => ({
   id: row.id,
   householdId: row.household_id,
+  seniorId: row.senior_id,
   name: row.name,
   dosage: row.dosage,
   form: row.form,

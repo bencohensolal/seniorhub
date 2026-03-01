@@ -19,6 +19,7 @@ export const medicationFormSchema = z.enum([
 
 // Schema for creating a new medication
 export const createMedicationBodySchema = z.object({
+  seniorId: z.string().min(1, 'Senior ID is required'), // REQUIRED: medication must be assigned to a senior
   name: z.string().min(1).max(200),
   dosage: z.string().min(1).max(100),
   form: medicationFormSchema,
@@ -31,7 +32,6 @@ export const createMedicationBodySchema = z.object({
   startDate: z.string().datetime(),
   endDate: z.string().datetime().optional(),
   instructions: z.string().max(1000).optional(),
-  seniorId: z.string().optional(), // Sent by mobile app for UI purposes, not stored
 });
 
 // Schema for updating an existing medication (all fields optional for partial update)

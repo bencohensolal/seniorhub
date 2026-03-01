@@ -31,6 +31,7 @@ export const createMedicationBodySchema = z.object({
   startDate: z.string().datetime(),
   endDate: z.string().datetime().optional(),
   instructions: z.string().max(1000).optional(),
+  seniorId: z.string().optional(), // Sent by mobile app for UI purposes, not stored
 });
 
 // Schema for updating an existing medication (all fields optional for partial update)
@@ -47,6 +48,7 @@ export const updateMedicationBodySchema = z.object({
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().nullable().optional(),
   instructions: z.string().max(1000).nullable().optional(),
+  seniorId: z.string().optional(), // Sent by mobile app for UI purposes, not stored
 });
 
 // Schema for medication URL parameters

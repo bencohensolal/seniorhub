@@ -18,6 +18,7 @@ export interface TaskRecurrence {
   frequency: RecurrenceFrequency;
   interval: number; // e.g., 1 for "every day", 2 for "every 2 weeks"
   daysOfWeek?: number[]; // 0=Sunday, 6=Saturday, for weekly
+  dayOfMonth?: number; // 1-31, for monthly recurrences
   endDate?: string; // ISO date
   occurrences?: number; // number of occurrences before stopping
 }
@@ -38,6 +39,7 @@ export interface Task {
   // Scheduling
   dueDate: string | null; // ISO date string (YYYY-MM-DD)
   dueTime: string | null; // HH:MM format
+  duration: number | null; // Duration in minutes
   
   // Recurrence
   recurrence: TaskRecurrence | null;
@@ -66,6 +68,7 @@ export interface CreateTaskInput {
   priority?: TaskPriority;
   dueDate?: string;
   dueTime?: string;
+  duration?: number; // Duration in minutes
   recurrence?: TaskRecurrence;
   createdBy: string;
 }
@@ -78,6 +81,7 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   dueDate?: string | null;
   dueTime?: string | null;
+  duration?: number | null; // Duration in minutes
   recurrence?: TaskRecurrence | null;
   caregiverId?: string | null;
 }

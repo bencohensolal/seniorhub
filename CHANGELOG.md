@@ -7,6 +7,8 @@ The format is inspired by Keep a Changelog.
 ## [Unreleased]
 
 ### Added
+- Comprehensive authentication documentation (`docs/AUTHENTICATION.md`) covering unified middleware architecture, JWT and header-based auth, security considerations, and migration guide.
+- Authentication test script (`test-auth-middleware.sh`) for validating both authentication methods.
 - Initial governance and architecture baseline.
 - API scaffolding for household data sharing.
 - Strong pre-commit and commit-msg hooks (docs guard, quality gate, commit format).

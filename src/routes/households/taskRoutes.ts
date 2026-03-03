@@ -419,10 +419,11 @@ export function registerTaskRoutes(
         },
         body: {
           type: 'object',
-          required: ['time', 'daysOfWeek'],
           properties: {
             time: { type: 'string' },
             daysOfWeek: { type: 'array', items: { type: 'integer', minimum: 0, maximum: 6 }, minItems: 1 },
+            triggerBefore: { type: 'integer', minimum: 1, maximum: 10080 },
+            customMessage: { type: 'string', maxLength: 500 },
             enabled: { type: 'boolean' },
           },
         },
@@ -496,8 +497,10 @@ export function registerTaskRoutes(
         body: {
           type: 'object',
           properties: {
-            time: { type: 'string' },
+            time: { type: ['string', 'null'] },
             daysOfWeek: { type: 'array', items: { type: 'integer', minimum: 0, maximum: 6 }, minItems: 1 },
+            triggerBefore: { type: ['integer', 'null'], minimum: 1, maximum: 10080 },
+            customMessage: { type: ['string', 'null'], maxLength: 500 },
             enabled: { type: 'boolean' },
           },
         },

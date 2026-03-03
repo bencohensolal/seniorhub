@@ -128,20 +128,32 @@ export const occurrenceQuerySchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'To date must be in YYYY-MM-DD format'),
 });
 
-// Schema for modifying an occurrence (overrides)
+// Occurrence status enum schema
+export const occurrenceStatusSchema = z.enum([
+  'scheduled',
+  'modified',
+  'cancelled',
+  'completed',
+  'missed',
+]);
+
+// Schema for modifying an occurrence
 export const modifyOccurrenceBodySchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  time: z.string().regex(TIME_REGEX, 'Time must be in HH:MM format (00:00 to 23:59)').optional(),
-  duration: z.number().int().positive().optional(),
-  locationName: z.string().max(255).optional(),
-  address: z.string().max(500).optional(),
-  phoneNumber: z.string().max(50).optional(),
-  professionalName: z.string().max(255).optional(),
-  description: z.string().max(1000).optional(),
-  preparation: z.string().max(1000).optional(),
-  documentsToTake: z.string().max(500).optional(),
-  transportArrangement: z.string().max(500).optional(),
-  notes: z.string().max(1000).optional(),
-}).refine(data => Object.keys(data).length > 0, {
-  message: 'At least one field must be provided to modify the occurrence',
+  status: occurrenceStatusSchema.optional(),
+  overrides: z.object({
+    title: z.string().min(1).max(200).optional(),
+    time: z.string().regex(TIME_REGEX, 'Time must be in HH:MM format (00:00 to 23:59)').optional(),
+    duration: z.number().int().positive().optional(),
+    locationName: z.string().max(255).optional(),
+    address: z.string().max(500).optional(),
+    phoneNumber: z.string().max(50).optional(),
+    professionalName: z.string().max(255).optional(),
+    description: z.string().max(1000).optional(),
+    preparation: z.string().max(1000).optional(),
+    documentsToTake: z.string().max(500).optional(),
+    transportArrangement: z.string().max(500).optional(),
+    notes: z.string().max(1000).optional(),
+  }).optional(),
+}).refine(data => data.status || data.overrides, {
+  message: 'Either status or overrides must be provided',
 });

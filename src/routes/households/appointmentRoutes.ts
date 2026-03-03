@@ -686,7 +686,7 @@ export function registerAppointmentRoutes(
           householdId: paramsResult.data.householdId,
           appointmentId: paramsResult.data.appointmentId,
           occurrenceDate: paramsResult.data.occurrenceDate,
-          overrides: bodyResult.data as any,
+          overrides: (bodyResult.data.overrides || {}) as any,
         });
 
         return reply.status(200).send({

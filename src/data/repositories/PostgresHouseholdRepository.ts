@@ -2179,6 +2179,14 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       updates.push(`caregiver_id = $${paramIndex++}`);
       values.push(input.caregiverId);
     }
+    if (input.completedAt !== undefined) {
+      updates.push(`completed_at = $${paramIndex++}`);
+      values.push(input.completedAt);
+    }
+    if (input.completedBy !== undefined) {
+      updates.push(`completed_by = $${paramIndex++}`);
+      values.push(input.completedBy);
+    }
 
     if (updates.length === 0) {
       throw new ValidationError('No fields to update.');

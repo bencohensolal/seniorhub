@@ -234,6 +234,7 @@ export const mapTask = (row: {
   status: TaskStatus;
   due_date: string | Date | null;
   due_time: string | null;
+  duration: number | null;
   recurrence: TaskRecurrence | string | null;
   completed_at: string | Date | null;
   completed_by: string | null;
@@ -252,6 +253,7 @@ export const mapTask = (row: {
   status: row.status,
   dueDate: row.due_date ? (toIso(row.due_date).split('T')[0] || null) : null,
   dueTime: row.due_time,
+  duration: row.duration,
   recurrence: row.recurrence ? (typeof row.recurrence === 'string' ? JSON.parse(row.recurrence) : row.recurrence) : null,
   completedAt: row.completed_at ? toIso(row.completed_at) : null,
   completedBy: row.completed_by,
@@ -263,8 +265,10 @@ export const mapTask = (row: {
 export const mapTaskReminder = (row: {
   id: string;
   task_id: string;
-  time: string;
-  days_of_week: number[] | string;
+  time: string | null;
+  days_of_week: number[] | string | null;
+  trigger_before: number | null;
+  custom_message: string | null;
   enabled: boolean;
   created_at: string | Date;
   updated_at: string | Date;
@@ -272,7 +276,9 @@ export const mapTaskReminder = (row: {
   id: row.id,
   taskId: row.task_id,
   time: row.time,
-  daysOfWeek: typeof row.days_of_week === 'string' ? JSON.parse(row.days_of_week) : row.days_of_week,
+  daysOfWeek: row.days_of_week ? (typeof row.days_of_week === 'string' ? JSON.parse(row.days_of_week) : row.days_of_week) : null,
+  triggerBefore: row.trigger_before,
+  customMessage: row.custom_message,
   enabled: row.enabled,
   createdAt: toIso(row.created_at),
   updatedAt: toIso(row.updated_at),

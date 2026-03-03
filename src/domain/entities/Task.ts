@@ -81,9 +81,11 @@ export interface UpdateTaskInput {
   status?: TaskStatus;
   dueDate?: string | null;
   dueTime?: string | null;
-  duration?: number | null; // Duration in minutes
+  duration?: number | null;
   recurrence?: TaskRecurrence | null;
   caregiverId?: string | null;
+  completedAt?: string | null;
+  completedBy?: string | null;
 }
 
 export interface CompleteTaskInput {

@@ -31,6 +31,7 @@ export class CreateTaskUseCase {
     priority?: TaskPriority;
     dueDate?: string;
     dueTime?: string;
+    duration?: number;
     recurrence?: TaskRecurrence;
     requester: AuthenticatedRequester;
   }): Promise<Task> {
@@ -63,6 +64,7 @@ export class CreateTaskUseCase {
       ...(input.priority && { priority: input.priority }),
       ...(input.dueDate && { dueDate: input.dueDate }),
       ...(input.dueTime && { dueTime: input.dueTime }),
+      ...(input.duration && { duration: input.duration }),
       ...(input.recurrence && { recurrence: input.recurrence }),
     };
 

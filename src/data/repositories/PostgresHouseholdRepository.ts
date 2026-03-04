@@ -42,7 +42,7 @@ import {
   mapTaskReminder,
   mapDisplayTablet,
 } from './postgres/helpers.js';
-import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthResult, DisplayTabletStatus } from '../../domain/entities/DisplayTablet.js';
+import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthInfo, DisplayTabletStatus } from '../../domain/entities/DisplayTablet.js';
 import { generateDisplayTabletToken, hashDisplayTabletToken } from '../../domain/security/displayTabletToken.js';
 
 const INVITATION_TTL_HOURS = 72;
@@ -2780,7 +2780,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async authenticateDisplayTablet(tabletId: string, token: string): Promise<DisplayTabletAuthResult | null> {
+  async authenticateDisplayTablet(tabletId: string, token: string): Promise<DisplayTabletAuthInfo | null> {
     const tokenHash = hashDisplayTabletToken(token);
     const now = nowIso();
 

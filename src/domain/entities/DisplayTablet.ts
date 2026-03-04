@@ -30,8 +30,15 @@ export interface UpdateDisplayTabletInput {
   description?: string | undefined;
 }
 
-export interface DisplayTabletAuthResult {
+// Basic authentication result from repository (without session token)
+export interface DisplayTabletAuthInfo {
   householdId: string;
   householdName: string;
   permissions: string[];
+}
+
+// Complete authentication result with session token (from use case)
+export interface DisplayTabletAuthResult extends DisplayTabletAuthInfo {
+  sessionToken: string; // JWT session token valid for 8 hours
+  expiresAt: string; // ISO 8601 timestamp
 }

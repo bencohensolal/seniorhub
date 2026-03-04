@@ -10,7 +10,7 @@ import type { AppointmentReminder, CreateAppointmentReminderInput, UpdateAppoint
 import type { AppointmentOccurrence, CreateOccurrenceInput, UpdateOccurrenceInput } from '../entities/AppointmentOccurrence.js';
 import type { Task, TaskWithReminders, CreateTaskInput, UpdateTaskInput, CompleteTaskInput } from '../entities/Task.js';
 import type { TaskReminder, CreateTaskReminderInput, UpdateTaskReminderInput } from '../entities/TaskReminder.js';
-import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthResult } from '../entities/DisplayTablet.js';
+import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthInfo } from '../entities/DisplayTablet.js';
 
 export interface InvitationCandidate {
   firstName: string;
@@ -150,6 +150,6 @@ export interface HouseholdRepository {
   revokeDisplayTablet(tabletId: string, householdId: string, revokedBy: string): Promise<void>;
   deleteDisplayTablet(tabletId: string, householdId: string): Promise<void>;
   regenerateDisplayTabletToken(tabletId: string, householdId: string): Promise<DisplayTabletWithToken>;
-  authenticateDisplayTablet(tabletId: string, token: string): Promise<DisplayTabletAuthResult | null>;
+  authenticateDisplayTablet(tabletId: string, token: string): Promise<DisplayTabletAuthInfo | null>;
   countActiveDisplayTablets(householdId: string): Promise<number>;
 }

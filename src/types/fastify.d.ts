@@ -1,7 +1,19 @@
-import type { AuthenticatedRequester } from '../domain/entities/Household.js';
+import 'fastify';
 
 declare module 'fastify' {
   interface FastifyRequest {
-    requester: AuthenticatedRequester;
+    requester: {
+      userId: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+    };
+    // Tablet session context (when authenticated as a tablet)
+    tabletSession?: {
+      tabletId: string;
+      householdId: string;
+      permissions: string[];
+      isTablet: true;
+    };
   }
 }

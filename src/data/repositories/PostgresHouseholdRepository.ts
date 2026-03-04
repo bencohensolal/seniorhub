@@ -363,12 +363,13 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       token_hash: string;
       token_expires_at: string | Date;
       status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+      reactivation_count: number;
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
       `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
               i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
-              i.token_expires_at, i.status, i.created_at, i.accepted_at
+              i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
        WHERE i.invitee_email = $1
@@ -403,12 +404,13 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       token_hash: string;
       token_expires_at: string | Date;
       status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+      reactivation_count: number;
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
       `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
               i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
-              i.token_expires_at, i.status, i.created_at, i.accepted_at
+              i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
        WHERE i.household_id = $1
@@ -436,12 +438,13 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       token_hash: string;
       token_expires_at: string | Date;
       status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+      reactivation_count: number;
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
       `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
               i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
-              i.token_expires_at, i.status, i.created_at, i.accepted_at
+              i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
        WHERE i.token_hash = $1
@@ -698,6 +701,114 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       });
 
       return {
+        newToken,
+        newExpiresAt,
+        acceptLinkUrl: links.acceptLinkUrl,
+        deepLinkUrl: links.deepLinkUrl,
+        fallbackUrl: links.fallbackUrl,
+      };
+    } catch (error) {
+      if (!transactionCommitted) {
+        await client.query('ROLLBACK');
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async reactivateInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    requesterUserId: string;
+  }): Promise<{
+    id: string;
+    inviteeFirstName: string;
+    inviteeLastName: string;
+    inviteeEmail: string;
+    assignedRole: HouseholdRole;
+    newToken: string;
+    newExpiresAt: string;
+    acceptLinkUrl: string;
+    deepLinkUrl: string;
+    fallbackUrl: string | null;
+  }> {
+    const client = await this.pool.connect();
+    let transactionCommitted = false;
+    const MAX_REACTIVATIONS = 3;
+
+    try {
+      await client.query('BEGIN');
+
+      const requester = await client.query<{ role: HouseholdRole }>(
+        `SELECT role
+         FROM household_members
+         WHERE household_id = $1 AND user_id = $2 AND status = 'active'
+         LIMIT 1`,
+        [input.householdId, input.requesterUserId],
+      );
+
+      const requesterRole = requester.rows[0]?.role;
+      if (requesterRole !== 'caregiver') {
+        throw new ForbiddenError('Only caregivers can reactivate invitations.');
+      }
+
+      const invitation = await client.query<{
+        id: string;
+        invitee_first_name: string;
+        invitee_last_name: string;
+        invitee_email: string;
+        assigned_role: HouseholdRole;
+        status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+        reactivation_count: number;
+      }>(
+        `SELECT id, invitee_first_name, invitee_last_name, invitee_email, assigned_role, status, reactivation_count
+         FROM household_invitations
+         WHERE id = $1 AND household_id = $2
+         LIMIT 1
+         FOR UPDATE`,
+        [input.invitationId, input.householdId],
+      );
+
+      const invitationRow = invitation.rows[0];
+      if (!invitationRow) {
+        throw new NotFoundError('Invitation not found.');
+      }
+
+      if (invitationRow.status !== 'expired') {
+        throw new ConflictError('Can only reactivate expired invitations.');
+      }
+
+      if (invitationRow.reactivation_count >= MAX_REACTIVATIONS) {
+        throw new ConflictError(`Maximum reactivation limit (${MAX_REACTIVATIONS}) reached. Please create a new invitation.`);
+      }
+
+      const newExpiresAt = addHours(nowIso(), INVITATION_TTL_HOURS);
+      const newToken = signInvitationToken(input.invitationId, env.TOKEN_SIGNING_SECRET);
+      const newTokenHash = hashToken(newToken);
+
+      await client.query(
+        `UPDATE household_invitations
+         SET token_hash = $2, token_expires_at = $3, status = 'pending', reactivation_count = reactivation_count + 1
+         WHERE id = $1`,
+        [input.invitationId, newTokenHash, newExpiresAt],
+      );
+
+      await client.query('COMMIT');
+      transactionCommitted = true;
+
+      const links = buildInvitationLinks({
+        token: newToken,
+        backendBaseUrl: env.BACKEND_URL,
+        ...(env.INVITATION_WEB_FALLBACK_URL ? { fallbackBaseUrl: env.INVITATION_WEB_FALLBACK_URL } : {}),
+      });
+
+      return {
+        id: invitationRow.id,
+        inviteeFirstName: invitationRow.invitee_first_name,
+        inviteeLastName: invitationRow.invitee_last_name,
+        inviteeEmail: invitationRow.invitee_email,
+        assignedRole: invitationRow.assigned_role,
         newToken,
         newExpiresAt,
         acceptLinkUrl: links.acceptLinkUrl,

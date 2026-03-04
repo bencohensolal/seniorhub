@@ -242,6 +242,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
         tokenHash: hashToken(token),
         tokenExpiresAt: addHours(createdAt, INVITATION_TTL_HOURS),
         status: 'pending',
+        reactivationCount: 0,
         createdAt,
         acceptedAt: null,
       };
@@ -475,6 +476,74 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     });
 
     return {
+      newToken,
+      newExpiresAt,
+      acceptLinkUrl: links.acceptLinkUrl,
+      deepLinkUrl: links.deepLinkUrl,
+      fallbackUrl: links.fallbackUrl,
+    };
+  }
+
+  async reactivateInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    requesterUserId: string;
+  }): Promise<{
+    id: string;
+    inviteeFirstName: string;
+    inviteeLastName: string;
+    inviteeEmail: string;
+    assignedRole: HouseholdRole;
+    newToken: string;
+    newExpiresAt: string;
+    acceptLinkUrl: string;
+    deepLinkUrl: string;
+    fallbackUrl: string | null;
+  }> {
+    const MAX_REACTIVATIONS = 3;
+
+    const requester = await this.findActiveMemberByUserInHousehold(input.requesterUserId, input.householdId);
+    if (!requester || requester.role !== 'caregiver') {
+      throw new Error('Only caregivers can reactivate invitations.');
+    }
+
+    const invitation = invitations.find(
+      (item) => item.id === input.invitationId && item.householdId === input.householdId,
+    );
+
+    if (!invitation) {
+      throw new Error('Invitation not found.');
+    }
+
+    if (invitation.status !== 'expired') {
+      throw new Error('Can only reactivate expired invitations.');
+    }
+
+    if (invitation.reactivationCount >= MAX_REACTIVATIONS) {
+      throw new Error(`Maximum reactivation limit (${MAX_REACTIVATIONS}) reached. Please create a new invitation.`);
+    }
+
+    const newExpiresAt = addHours(nowIso(), INVITATION_TTL_HOURS);
+    const newToken = signInvitationToken(input.invitationId, env.TOKEN_SIGNING_SECRET);
+    const newTokenHash = hashToken(newToken);
+
+    invitation.tokenHash = newTokenHash;
+    invitation.tokenExpiresAt = newExpiresAt;
+    invitation.status = 'pending';
+    invitation.reactivationCount += 1;
+
+    const links = buildInvitationLinks({
+      token: newToken,
+      backendBaseUrl: env.BACKEND_URL,
+      ...(env.INVITATION_WEB_FALLBACK_URL ? { fallbackBaseUrl: env.INVITATION_WEB_FALLBACK_URL } : {}),
+    });
+
+    return {
+      id: invitation.id,
+      inviteeFirstName: invitation.inviteeFirstName,
+      inviteeLastName: invitation.inviteeLastName,
+      inviteeEmail: invitation.inviteeEmail,
+      assignedRole: invitation.assignedRole,
       newToken,
       newExpiresAt,
       acceptLinkUrl: links.acceptLinkUrl,

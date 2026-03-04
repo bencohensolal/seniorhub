@@ -36,9 +36,13 @@ The format is inspired by Keep a Changelog.
 - GET `/v1/households/:householdId/invitations` endpoint to list sent invitations for household admins.
 - POST `/v1/households/:householdId/invitations/:invitationId/cancel` endpoint to cancel pending invitations.
 - POST `/v1/households/:householdId/invitations/:invitationId/resend` endpoint to resend invitation emails with new tokens.
+- POST `/v1/households/:householdId/invitations/:invitationId/reactivate` endpoint to reactivate expired invitations with new tokens and automatic email delivery.
 - `ListHouseholdInvitationsUseCase` for retrieving sent invitations with caregiver authorization.
 - `CancelInvitationUseCase` for cancelling pending invitations.
 - `ResendInvitationUseCase` for regenerating invitation tokens and resending emails.
+- `ReactivateInvitationUseCase` for reactivating expired invitations with rate limiting (max 3 reactivations).
+- Invitation reactivation tracking with `reactivation_count` column in database (migration 014).
+- `invitation_reactivated` audit event action for tracking invitation reactivations.
 - Railway deployment resolution guide (`DEPLOYMENT_RESOLUTION.md`) documenting Docker cache mount conflict fixes.
 
 ### Changed

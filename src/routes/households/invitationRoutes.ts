@@ -9,6 +9,7 @@ import type { ListHouseholdInvitationsUseCase } from '../../domain/usecases/invi
 import type { ResolveInvitationUseCase } from '../../domain/usecases/invitations/ResolveInvitationUseCase.js';
 import type { ResendInvitationUseCase } from '../../domain/usecases/invitations/ResendInvitationUseCase.js';
 import type { AutoAcceptPendingInvitationsUseCase } from '../../domain/usecases/invitations/AutoAcceptPendingInvitationsUseCase.js';
+import type { ReactivateInvitationUseCase } from '../../domain/usecases/invitations/ReactivateInvitationUseCase.js';
 import { invitationEmailRuntime } from '../../data/services/email/invitationEmailRuntime.js';
 import { env } from '../../config/env.js';
 import {
@@ -44,6 +45,7 @@ export const registerInvitationRoutes = (
     acceptInvitationUseCase: AcceptInvitationUseCase;
     cancelInvitationUseCase: CancelInvitationUseCase;
     resendInvitationUseCase: ResendInvitationUseCase;
+    reactivateInvitationUseCase: ReactivateInvitationUseCase;
     autoAcceptPendingInvitationsUseCase: AutoAcceptPendingInvitationsUseCase;
   },
 ) => {
@@ -674,6 +676,102 @@ export const registerInvitationRoutes = (
         return reply.status(200).send({
           status: 'success',
           data: { newExpiresAt: result.newExpiresAt },
+        });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // POST /v1/households/:householdId/invitations/:invitationId/reactivate - Reactivate expired invitation
+  fastify.post(
+    '/v1/households/:householdId/invitations/:invitationId/reactivate',
+    {
+      schema: {
+        tags: ['Invitations'],
+        params: {
+          type: 'object',
+          properties: {
+            householdId: { type: 'string' },
+            invitationId: { type: 'string' },
+          },
+          required: ['householdId', 'invitationId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  inviteeFirstName: { type: 'string' },
+                  inviteeLastName: { type: 'string' },
+                  inviteeEmail: { type: 'string' },
+                  status: { type: 'string', enum: ['pending'] },
+                  assignedRole: { type: 'string', enum: ['senior', 'caregiver'] },
+                  newToken: { type: 'string' },
+                  expiresAt: { type: 'string' },
+                },
+                required: ['id', 'inviteeFirstName', 'inviteeLastName', 'inviteeEmail', 'status', 'assignedRole', 'newToken', 'expiresAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = cancelInvitationParamsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      try {
+        const result = await useCases.reactivateInvitationUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          invitationId: paramsResult.data.invitationId,
+          requester: request.requester,
+        });
+
+        // Queue the email with the new token
+        console.info('[Invitations] Reactivating invitation and sending email:', {
+          invitationId: paramsResult.data.invitationId,
+          inviteeEmail: result.inviteeEmail,
+        });
+
+        invitationEmailRuntime.queue.enqueueBulk([{
+          invitationId: paramsResult.data.invitationId,
+          inviteeEmail: result.inviteeEmail,
+          inviteeFirstName: result.inviteeFirstName,
+          assignedRole: result.assignedRole,
+          acceptLinkUrl: result.acceptLinkUrl,
+          deepLinkUrl: result.deepLinkUrl,
+          fallbackUrl: result.fallbackUrl,
+        }]);
+
+        await repository.logAuditEvent({
+          householdId: paramsResult.data.householdId,
+          actorUserId: request.requester.userId,
+          action: 'invitation_reactivated',
+          targetId: paramsResult.data.invitationId,
+          metadata: {
+            requesterEmailMasked: maskEmail(request.requester.email),
+          },
+        });
+
+        return reply.status(200).send({
+          status: 'success',
+          data: result,
         });
       } catch (error) {
         return handleDomainError(error, reply);

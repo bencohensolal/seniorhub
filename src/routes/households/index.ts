@@ -12,6 +12,7 @@ import { ListPendingInvitationsUseCase } from '../../domain/usecases/invitations
 import { ListUserHouseholdsUseCase } from '../../domain/usecases/households/ListUserHouseholdsUseCase.js';
 import { RemoveHouseholdMemberUseCase } from '../../domain/usecases/households/RemoveHouseholdMemberUseCase.js';
 import { ResendInvitationUseCase } from '../../domain/usecases/invitations/ResendInvitationUseCase.js';
+import { ReactivateInvitationUseCase } from '../../domain/usecases/invitations/ReactivateInvitationUseCase.js';
 import { ResolveInvitationUseCase } from '../../domain/usecases/invitations/ResolveInvitationUseCase.js';
 import { UpdateHouseholdMemberRoleUseCase } from '../../domain/usecases/households/UpdateHouseholdMemberRoleUseCase.js';
 import { AutoAcceptPendingInvitationsUseCase } from '../../domain/usecases/invitations/AutoAcceptPendingInvitationsUseCase.js';
@@ -80,6 +81,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     acceptInvitationUseCase: new AcceptInvitationUseCase(repository),
     cancelInvitationUseCase: new CancelInvitationUseCase(repository),
     resendInvitationUseCase: new ResendInvitationUseCase(repository),
+    reactivateInvitationUseCase: new ReactivateInvitationUseCase(repository),
     autoAcceptPendingInvitationsUseCase: new AutoAcceptPendingInvitationsUseCase(repository),
     removeHouseholdMemberUseCase: new RemoveHouseholdMemberUseCase(repository),
     updateHouseholdMemberRoleUseCase: new UpdateHouseholdMemberRoleUseCase(repository),
@@ -132,6 +134,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     acceptInvitationUseCase: useCases.acceptInvitationUseCase,
     cancelInvitationUseCase: useCases.cancelInvitationUseCase,
     resendInvitationUseCase: useCases.resendInvitationUseCase,
+    reactivateInvitationUseCase: useCases.reactivateInvitationUseCase,
     autoAcceptPendingInvitationsUseCase: useCases.autoAcceptPendingInvitationsUseCase,
   });
 

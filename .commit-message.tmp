@@ -1,15 +1,28 @@
-chore: cleanup debug logs and temporary files
+feat(invitations): add invitation reactivation endpoint
 
-Remove debug console.log statements and temporary documentation files.
+Add POST /v1/households/:householdId/invitations/:invitationId/reactivate endpoint to reactivate expired invitations with automatic email delivery.
 
-**Removed:**
-- Console.log in createTaskReminder (debugging was successful)
-- docs/AUTHENTICATION_ANALYSIS.md (temporary analysis doc)
-- docs/AUTHENTICATION_RESOLUTION_SUMMARY.md (temporary summary doc)
-- TASK_ENHANCEMENTS_TODO.md (work completed)
-- test-auth-middleware.sh (temporary test script)
+**Database (Migration 014):**
+- Add reactivation_count INTEGER column to household_invitations
+- Add invitation_reactivated to audit event actions enum
 
-**Result:**
-- Clean production code without debug statements
-- Only relevant documentation remains (MOBILE_APP_AUTH.md, AUTHENTICATION.md)
-- Repository is production-ready
+**Domain Layer:**
+- Update Invitation entity with reactivationCount field
+- Create ReactivateInvitationUseCase with business rules:
+  * Only caregivers can reactivate invitations
+  * Only expired invitations can be reactivated
+  * Maximum 3 reactivations per invitation (prevents abuse)
+  * Generates new token with 72-hour expiration
+
+**Data Layer:**
+- Implement reactivateInvitation in PostgresHouseholdRepository
+- Implement reactivateInvitation in InMemoryHouseholdRepository
+- Update mapInvitation helper to include reactivationCount
+
+**API Layer:**
+- Add POST /invitations/:id/reactivate route handler
+- Automatic email queuing after reactivation
+- Audit logging for invitation_reactivated action
+- Returns full invitation details with new token and links
+
+This feature enables caregivers to reactivate expired invitations without creating duplicates, while preventing abuse through rate limiting.

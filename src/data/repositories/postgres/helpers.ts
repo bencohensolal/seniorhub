@@ -64,6 +64,7 @@ export const mapInvitation = (row: {
   token_hash: string;
   token_expires_at: string | Date;
   status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  reactivation_count: number;
   created_at: string | Date;
   accepted_at: string | Date | null;
 }): HouseholdInvitation => ({
@@ -78,6 +79,7 @@ export const mapInvitation = (row: {
   tokenHash: row.token_hash,
   tokenExpiresAt: toIso(row.token_expires_at),
   status: row.status,
+  reactivationCount: row.reactivation_count,
   createdAt: toIso(row.created_at),
   acceptedAt: row.accepted_at ? toIso(row.accepted_at) : null,
 });

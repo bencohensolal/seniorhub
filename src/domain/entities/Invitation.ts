@@ -14,6 +14,7 @@ export interface HouseholdInvitation {
   tokenHash: string;
   tokenExpiresAt: string;
   status: InvitationStatus;
+  reactivationCount: number;
   createdAt: string;
   acceptedAt: string | null;
 }
@@ -32,7 +33,7 @@ export interface AuditEvent {
   id: string;
   householdId: string;
   actorUserId: string;
-  action: 'invitation_created' | 'invitation_accepted' | 'invitation_cancelled' | 'invitation_resent';
+  action: 'invitation_created' | 'invitation_accepted' | 'invitation_cancelled' | 'invitation_resent' | 'invitation_reactivated';
   targetId: string;
   metadata: Record<string, string>;
   createdAt: string;
@@ -41,7 +42,7 @@ export interface AuditEvent {
 export interface AuditEventInput {
   householdId: string;
   actorUserId: string;
-  action: 'invitation_created' | 'invitation_accepted' | 'invitation_cancelled' | 'invitation_resent';
+  action: 'invitation_created' | 'invitation_accepted' | 'invitation_cancelled' | 'invitation_resent' | 'invitation_reactivated';
   targetId: string;
   metadata: Record<string, string>;
 }

@@ -22,9 +22,9 @@ export class TabletConfigNotifier {
     console.log(`[TabletConfigNotifier] Tablet ${tabletId} registered for config updates (${this.connections.size} active)`);
 
     // Send initial connection confirmation
-    this.sendEvent(reply, {
-      type: 'connected',
+    this.sendEvent(reply, 'connected', {
       message: 'Connected to config update stream',
+      tabletId: tabletId,
       timestamp: new Date().toISOString(),
     });
   }
@@ -53,36 +53,34 @@ export class TabletConfigNotifier {
    * @param tabletId - The tablet ID
    * @param config - The updated configuration
    */
-  notifyConfigUpdate(tabletId: string, config: any): void {
+  notifyConfigUpdate(tabletId: string, config: { lastUpdated?: string }): void {
     const reply = this.connections.get(tabletId);
     
     if (reply) {
-      console.log(`[TabletConfigNotifier] Notifying tablet ${tabletId} of config update`);
+      console.info(`[TabletConfigNotifier] Notifying tablet ${tabletId} of config update`);
       
-      this.sendEvent(reply, {
-        type: 'config-updated',
-        message: 'Configuration has been updated',
+      this.sendEvent(reply, 'config-updated', {
+        tabletId: tabletId,
         timestamp: new Date().toISOString(),
-        data: {
-          lastUpdated: config.lastUpdated,
-          // Don't send full config to save bandwidth - tablet will fetch it
-        },
+        lastUpdated: config.lastUpdated,
       });
     } else {
-      console.log(`[TabletConfigNotifier] Tablet ${tabletId} not connected, skipping notification`);
+      console.info(`[TabletConfigNotifier] Tablet ${tabletId} not connected, skipping notification`);
     }
   }
 
   /**
-   * Send an SSE event to a client
+   * Send an SSE event to a client in standard SSE format
    * @param reply - Fastify reply object
-   * @param event - Event data to send
+   * @param eventType - Event type (connected, config-updated, heartbeat)
+   * @param data - Event data to send
    */
-  private sendEvent(reply: FastifyReply, event: any): void {
+  private sendEvent(reply: FastifyReply, eventType: string, data: Record<string, unknown>): void {
     try {
       if (!reply.sent) {
-        const eventData = `data: ${JSON.stringify(event)}\n\n`;
-        reply.raw.write(eventData);
+        // Standard SSE format with event type prefix
+        const sseMessage = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+        reply.raw.write(sseMessage);
       }
     } catch (error) {
       console.error('[TabletConfigNotifier] Error sending event:', error);
@@ -99,8 +97,7 @@ export class TabletConfigNotifier {
     for (const [tabletId, reply] of this.connections.entries()) {
       try {
         if (!reply.sent && !reply.raw.destroyed) {
-          this.sendEvent(reply, {
-            type: 'heartbeat',
+          this.sendEvent(reply, 'heartbeat', {
             timestamp: new Date().toISOString(),
           });
         } else {

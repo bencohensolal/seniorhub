@@ -8,26 +8,51 @@ Les tablettes peuvent maintenant recevoir des notifications en temps réel quand
 
 ### 1. Connexion SSE
 
-Quand une tablette démarre ou s'authentifie, elle doit établir une connexion SSE persistante :
+Quand une tablette démarre, elle doit établir une connexion SSE persistante :
 
 **Endpoint :** `GET /v1/households/{householdId}/display-tablets/{tabletId}/config-updates`
 
-**Headers requis :**
-- `x-tablet-session-token: {sessionToken}` (obtenu après authentification)
+**Headers requis (2 méthodes d'authentification) :**
+
+**Méthode 1 - Credentials directs (recommandé pour simplicité) :**
+```
+x-tablet-id: {tabletId}
+x-tablet-token: {token de 64 caractères}
+```
+
+**Méthode 2 - JWT Session Token :**
+```
+x-tablet-session-token: {sessionToken}
+```
+(JWT obtenu via `POST /v1/display-tablets/authenticate`)
+
+**💡 L'app utilise actuellement la Méthode 1** avec credentials directs sur tous les endpoints de lecture.
 
 **Exemple de connexion (React Native / Expo) :**
 
 ```typescript
 import { EventSource } from 'react-native-sse';
 
+// Méthode 1 : Avec credentials directs (recommandé, utilisé par l'app)
 const eventSource = new EventSource(
   `${API_BASE_URL}/v1/households/${householdId}/display-tablets/${tabletId}/config-updates`,
   {
     headers: {
-      'x-tablet-session-token': sessionToken,
+      'x-tablet-id': tabletId,
+      'x-tablet-token': tabletToken, // Token de 64 caractères
     },
   }
 );
+
+// Méthode 2 : Avec JWT session token (alternative)
+// const eventSource = new EventSource(
+//   `${API_BASE_URL}/v1/households/${householdId}/display-tablets/${tabletId}/config-updates`,
+//   {
+//     headers: {
+//       'x-tablet-session-token': sessionToken,
+//     },
+//   }
+// );
 
 eventSource.addEventListener('message', (event) => {
   const data = JSON.parse(event.data);

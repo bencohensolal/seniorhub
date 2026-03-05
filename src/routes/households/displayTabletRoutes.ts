@@ -610,27 +610,85 @@ export const registerDisplayTabletRoutes = (
     '/v1/households/:householdId/display-tablets/:tabletId/config-updates',
     {
       preHandler: async (request: any, reply: any) => {
-        // Only tablets can subscribe to config updates
-        if (!request.tabletSession) {
+        // This endpoint accepts tablet authentication via:
+        // 1. x-tablet-session-token (JWT from /authenticate)
+        // 2. x-tablet-id + x-tablet-token (raw credentials)
+        
+        // Try method 1: JWT session token (already set by global middleware)
+        if (request.tabletSession) {
+          const params = request.params as any;
+          
+          // Validate tablet can only subscribe to its own updates
+          if (request.tabletSession.tabletId !== params.tabletId) {
+            return reply.status(403).send({
+              status: 'error',
+              message: 'Tablets can only subscribe to their own config updates.',
+            });
+          }
+          
+          if (request.tabletSession.householdId !== params.householdId) {
+            return reply.status(403).send({
+              status: 'error',
+              message: 'Tablet does not belong to this household.',
+            });
+          }
+          
+          return; // Authenticated via JWT
+        }
+        
+        // Try method 2: Raw credentials (x-tablet-id + x-tablet-token)
+        const tabletId = (request.headers['x-tablet-id'] as string | undefined)?.trim();
+        const tabletToken = (request.headers['x-tablet-token'] as string | undefined)?.trim();
+        
+        if (!tabletId || !tabletToken) {
           return reply.status(401).send({
             status: 'error',
-            message: 'This endpoint is only accessible to tablets.',
+            message: 'Tablet authentication required. Provide x-tablet-id + x-tablet-token or x-tablet-session-token.',
           });
         }
         
-        // Tablet can only subscribe to its own updates
+        // Validate tabletId matches URL
         const params = request.params as any;
-        if (request.tabletSession.tabletId !== params.tabletId) {
+        if (tabletId !== params.tabletId) {
           return reply.status(403).send({
             status: 'error',
-            message: 'Tablets can only subscribe to their own config updates.',
+            message: 'Tablet ID in headers does not match URL.',
           });
         }
         
-        if (request.tabletSession.householdId !== params.householdId) {
-          return reply.status(403).send({
+        // Authenticate with raw credentials
+        try {
+          const tabletAuth = await repository.authenticateDisplayTablet(tabletId, tabletToken);
+          
+          if (!tabletAuth) {
+            return reply.status(401).send({
+              status: 'error',
+              message: 'Invalid tablet credentials or tablet is not active.',
+            });
+          }
+          
+          // Validate householdId
+          if (tabletAuth.householdId !== params.householdId) {
+            return reply.status(403).send({
+              status: 'error',
+              message: 'Tablet does not belong to this household.',
+            });
+          }
+          
+          // Set tablet session for use in route handler
+          request.tabletSession = {
+            tabletId: tabletId,
+            householdId: tabletAuth.householdId,
+            permissions: tabletAuth.permissions,
+            isTablet: true,
+          };
+          
+          return; // Authenticated via raw credentials
+        } catch (error) {
+          fastify.log.error({ error, tabletId }, 'SSE tablet authentication error');
+          return reply.status(500).send({
             status: 'error',
-            message: 'Tablet does not belong to this household.',
+            message: 'Internal server error during authentication.',
           });
         }
       },

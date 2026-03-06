@@ -1,7 +1,8 @@
-fix(photo-screens): correct route paths for proper registration
+fix(photo-screens): add missing authentication to all routes
 
-Fixed 404 errors by updating route paths from relative (/:householdId/...)
-to absolute (/households/:householdId/...) paths to match the /v1 prefix
-registration pattern.
+Added requireUserAuth preHandler to all 9 photo screen endpoints:
+- Photo screens: POST, GET (list), GET (single), PUT, DELETE
+- Photos: POST (upload), PUT, DELETE, PUT (reorder)
 
-All 9 photo screen endpoints now properly registered and accessible.
+This was causing 404/401 errors as routes were not properly protected.
+All routes now require valid user authentication headers.

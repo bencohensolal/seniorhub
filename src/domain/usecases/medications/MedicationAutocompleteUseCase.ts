@@ -13,6 +13,19 @@ export interface MedicationSuggestion {
   id: string;
 }
 
+interface FrenchMedicationSuggestion {
+  value?: string;
+  url?: string;
+}
+
+interface RxNormSuggestionResponse {
+  suggestionGroup?: {
+    suggestionList?: {
+      suggestion?: string[];
+    };
+  };
+}
+
 export class MedicationAutocompleteUseCase {
   async execute(input: {
     term: string;
@@ -52,7 +65,7 @@ export class MedicationAutocompleteUseCase {
       const https = await import('https');
       
       // Use native https module with custom agent to bypass SSL verification
-      const data = await new Promise<any>((resolve, reject) => {
+      const data = await new Promise<unknown>((resolve, reject) => {
         const timeoutId = setTimeout(() => {
           reject(new Error('Request timeout'));
         }, 5000);
@@ -104,7 +117,7 @@ export class MedicationAutocompleteUseCase {
 
       // Format response to match app expectations
       // French API format: {value: string, url: string}
-      const suggestions = data.slice(0, 10).map((item: any) => ({
+      const suggestions = data.slice(0, 10).map((item: FrenchMedicationSuggestion) => ({
         label: item.value || '',
         value: item.value || '',
         id: item.url || item.value || '',
@@ -143,7 +156,7 @@ export class MedicationAutocompleteUseCase {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as RxNormSuggestionResponse;
       const suggestions = data.suggestionGroup?.suggestionList?.suggestion || [];
 
       if (!Array.isArray(suggestions)) {

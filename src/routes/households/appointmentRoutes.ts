@@ -1,4 +1,8 @@
 import type { FastifyInstance } from 'fastify';
+import type { z } from 'zod';
+import type { CreateAppointmentInput, UpdateAppointmentInput } from '../../domain/entities/Appointment.js';
+import type { CreateAppointmentReminderInput, UpdateAppointmentReminderInput } from '../../domain/entities/AppointmentReminder.js';
+import type { OccurrenceOverrides } from '../../domain/entities/AppointmentOccurrence.js';
 import type { ListHouseholdAppointmentsUseCase } from '../../domain/usecases/appointments/ListHouseholdAppointmentsUseCase.js';
 import type { CreateAppointmentUseCase } from '../../domain/usecases/appointments/CreateAppointmentUseCase.js';
 import type { UpdateAppointmentUseCase } from '../../domain/usecases/appointments/UpdateAppointmentUseCase.js';
@@ -40,6 +44,24 @@ export function registerAppointmentRoutes(
     cancelOccurrenceUseCase: CancelOccurrenceUseCase;
   },
 ): void {
+  type CreateAppointmentRouteInput = Parameters<CreateAppointmentUseCase['execute']>[0];
+  type AppointmentRecurrenceInput = z.infer<typeof createAppointmentBodySchema>['recurrence'];
+
+  const normalizeRecurrence = (recurrence: AppointmentRecurrenceInput): CreateAppointmentInput['recurrence'] => {
+    if (!recurrence) {
+      return undefined;
+    }
+
+    return {
+      frequency: recurrence.frequency,
+      interval: recurrence.interval,
+      ...(recurrence.daysOfWeek !== undefined && { daysOfWeek: recurrence.daysOfWeek }),
+      ...(recurrence.dayOfMonth !== undefined && { dayOfMonth: recurrence.dayOfMonth }),
+      ...(recurrence.endDate !== undefined && { endDate: recurrence.endDate }),
+      ...(recurrence.occurrences !== undefined && { occurrences: recurrence.occurrences }),
+    };
+  };
+
   // GET /v1/households/:householdId/appointments - List household appointments (READ - tablets allowed)
   fastify.get(
     '/v1/households/:householdId/appointments',
@@ -164,7 +186,7 @@ export function registerAppointmentRoutes(
 
       try {
         const body = bodyResult.data;
-        const inputData: any = {
+        const inputData: CreateAppointmentRouteInput = {
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
           title: body.title,
@@ -184,7 +206,12 @@ export function registerAppointmentRoutes(
         if (body.preparation !== undefined) inputData.preparation = body.preparation;
         if (body.documentsToTake !== undefined) inputData.documentsToTake = body.documentsToTake;
         if (body.transportArrangement !== undefined) inputData.transportArrangement = body.transportArrangement;
-        if (body.recurrence !== undefined) inputData.recurrence = body.recurrence;
+        if (body.recurrence !== undefined) {
+          const recurrence = normalizeRecurrence(body.recurrence);
+          if (recurrence !== undefined) {
+            inputData.recurrence = recurrence;
+          }
+        }
         if (body.status !== undefined) inputData.status = body.status;
         if (body.notes !== undefined) inputData.notes = body.notes;
 
@@ -272,7 +299,7 @@ export function registerAppointmentRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateAppointmentInput = {};
         const body = bodyResult.data;
 
         if (body.title !== undefined) updateData.title = body.title;
@@ -290,7 +317,12 @@ export function registerAppointmentRoutes(
         if (body.preparation !== undefined) updateData.preparation = body.preparation;
         if (body.documentsToTake !== undefined) updateData.documentsToTake = body.documentsToTake;
         if (body.transportArrangement !== undefined) updateData.transportArrangement = body.transportArrangement;
-        if (body.recurrence !== undefined) updateData.recurrence = body.recurrence;
+        if (body.recurrence !== undefined) {
+          const recurrence = body.recurrence ? normalizeRecurrence(body.recurrence) : null;
+          if (recurrence !== undefined) {
+            updateData.recurrence = recurrence;
+          }
+        }
         if (body.status !== undefined) updateData.status = body.status;
         if (body.notes !== undefined) updateData.notes = body.notes;
 
@@ -413,7 +445,10 @@ export function registerAppointmentRoutes(
 
       try {
         const body = bodyResult.data;
-        const inputData: any = {
+        const inputData: CreateAppointmentReminderInput & {
+          householdId: string;
+          requester: ReturnType<typeof getRequesterContext>;
+        } = {
           householdId: paramsResult.data.householdId,
           appointmentId: paramsResult.data.appointmentId,
           requester: getRequesterContext(request),
@@ -487,7 +522,7 @@ export function registerAppointmentRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateAppointmentReminderInput = {};
         const body = bodyResult.data;
 
         if (body.triggerBefore !== undefined) updateData.triggerBefore = body.triggerBefore;
@@ -703,7 +738,7 @@ export function registerAppointmentRoutes(
           householdId: paramsResult.data.householdId,
           appointmentId: paramsResult.data.appointmentId,
           occurrenceDate: paramsResult.data.occurrenceDate,
-          overrides: (bodyResult.data.overrides || {}) as any,
+          overrides: (bodyResult.data.overrides || {}) as OccurrenceOverrides,
         });
 
         return reply.status(200).send({

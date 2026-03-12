@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { UpdateReminderInput } from '../../domain/entities/MedicationReminder.js';
 import type { ListMedicationRemindersUseCase } from '../../domain/usecases/reminders/ListMedicationRemindersUseCase.js';
 import type { CreateReminderUseCase } from '../../domain/usecases/reminders/CreateReminderUseCase.js';
 import type { UpdateReminderUseCase } from '../../domain/usecases/reminders/UpdateReminderUseCase.js';
@@ -12,6 +13,7 @@ import {
 } from './medicationSchemas.js';
 import { handleDomainError } from '../errorHandler.js';
 import { getRequesterContext } from './utils.js';
+import { requireWritePermission } from '../../plugins/authContext.js';
 
 export function registerReminderRoutes(
   fastify: FastifyInstance,
@@ -82,6 +84,7 @@ export function registerReminderRoutes(
   fastify.post(
     '/v1/households/:householdId/medications/:medicationId/reminders',
     {
+      preHandler: requireWritePermission,
       schema: {
         tags: ['Medication Reminders'],
         params: {
@@ -122,6 +125,16 @@ export function registerReminderRoutes(
       const bodyResult = createReminderBodySchema.safeParse(request.body);
 
       if (!paramsResult.success || !bodyResult.success) {
+        request.log.warn(
+          {
+            paramsIssues: paramsResult.success ? null : paramsResult.error.flatten(),
+            bodyIssues: bodyResult.success ? null : bodyResult.error.flatten(),
+            params: request.params,
+            body: request.body,
+          },
+          '[MedicationReminders] Invalid create reminder payload',
+        );
+
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',
@@ -135,7 +148,7 @@ export function registerReminderRoutes(
           requester: getRequesterContext(request),
           time: bodyResult.data.time,
           daysOfWeek: bodyResult.data.daysOfWeek,
-          enabled: bodyResult.data.enabled,
+          enabled: bodyResult.data.enabled ?? true,
         });
 
         return reply.status(201).send({
@@ -152,6 +165,7 @@ export function registerReminderRoutes(
   fastify.put(
     '/v1/households/:householdId/medications/:medicationId/reminders/:reminderId',
     {
+      preHandler: requireWritePermission,
       schema: {
         tags: ['Medication Reminders'],
         params: {
@@ -192,6 +206,16 @@ export function registerReminderRoutes(
       const bodyResult = updateReminderBodySchema.safeParse(request.body);
 
       if (!paramsResult.success || !bodyResult.success) {
+        request.log.warn(
+          {
+            paramsIssues: paramsResult.success ? null : paramsResult.error.flatten(),
+            bodyIssues: bodyResult.success ? null : bodyResult.error.flatten(),
+            params: request.params,
+            body: request.body,
+          },
+          '[MedicationReminders] Invalid update reminder payload',
+        );
+
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',
@@ -199,7 +223,7 @@ export function registerReminderRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateReminderInput = {};
         const body = bodyResult.data;
 
         if (body.time !== undefined) updateData.time = body.time;
@@ -228,6 +252,7 @@ export function registerReminderRoutes(
   fastify.delete(
     '/v1/households/:householdId/medications/:medicationId/reminders/:reminderId',
     {
+      preHandler: requireWritePermission,
       schema: {
         tags: ['Medication Reminders'],
         params: {

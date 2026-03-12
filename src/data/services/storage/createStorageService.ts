@@ -10,7 +10,7 @@ import { env } from '../../../config/env.js';
 export function createStorageService(): StorageService {
   const provider = env.STORAGE_PROVIDER || 'gcs';
   
-  console.log('[Storage] Initializing storage service:', {
+  console.info('[Storage] Initializing storage service:', {
     provider,
     hasGcpServiceAccountKeyBase64: !!env.GCP_SERVICE_ACCOUNT_KEY_BASE64,
     hasGcsProjectId: !!env.GCS_PROJECT_ID,

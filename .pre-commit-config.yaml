@@ -15,7 +15,7 @@ repos:
 
       - id: api-quality-check
         name: api quality check (lint/typecheck/test)
-        entry: bash -lc "cd api && npm run quality:check"
+        entry: npm run quality:check
         language: system
         pass_filenames: false
 

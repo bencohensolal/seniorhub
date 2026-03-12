@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
+import { DEFAULT_TEST_HOUSEHOLD_ID, InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
 import { AcceptInvitationUseCase } from './AcceptInvitationUseCase.js';
 import { CancelInvitationUseCase } from './CancelInvitationUseCase.js';
 import { CreateBulkInvitationsUseCase } from './CreateBulkInvitationsUseCase.js';
@@ -18,7 +18,7 @@ describe('Invitation lifecycle domain rules', () => {
     const acceptInvitation = new AcceptInvitationUseCase(repository);
 
     const invitationResult = await createBulkInvitations.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       requester: {
         userId: 'user-2',
         email: 'ben@example.com',
@@ -76,7 +76,7 @@ describe('Invitation lifecycle domain rules', () => {
     vi.setSystemTime(baseTime);
 
     const invitationResult = await createBulkInvitations.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       requester: {
         userId: 'user-2',
         email: 'ben@example.com',
@@ -117,7 +117,7 @@ describe('Invitation lifecycle domain rules', () => {
     const cancelInvitation = new CancelInvitationUseCase(repository);
 
     const invitationResult = await createBulkInvitations.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       requester: {
         userId: 'user-2',
         email: 'ben@example.com',
@@ -137,7 +137,7 @@ describe('Invitation lifecycle domain rules', () => {
     const invitationId = invitationResult.deliveries[0]?.invitationId ?? '';
 
     await cancelInvitation.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       invitationId,
       requester: {
         userId: 'user-2',
@@ -149,7 +149,7 @@ describe('Invitation lifecycle domain rules', () => {
 
     await expect(
       cancelInvitation.execute({
-        householdId: 'household-1',
+        householdId: DEFAULT_TEST_HOUSEHOLD_ID,
         invitationId,
         requester: {
           userId: 'user-1',

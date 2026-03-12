@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import type { MultipartFields } from '@fastify/multipart';
+import type { StorageService } from '../../data/services/storage/types.js';
 import type { z } from 'zod';
 import multipart from '@fastify/multipart';
 import { createHouseholdRepository } from '../../data/repositories/createHouseholdRepository.js';
@@ -25,10 +27,24 @@ import {
 import { MAX_PHOTO_SIZE_MB, MAX_PHOTO_CAPTION_LENGTH } from '../../domain/entities/PhotoScreen.js';
 
 const MAX_FILE_SIZE = MAX_PHOTO_SIZE_MB * 1024 * 1024; // Convert to bytes
+const getMultipartFieldValue = (field: MultipartFields[string]): string | undefined => {
+  if (!field || Array.isArray(field) || !('value' in field) || typeof field.value !== 'string') {
+    return undefined;
+  }
+
+  return field.value;
+};
 
 export async function photoScreenRoutes(server: FastifyInstance) {
   const repository = createHouseholdRepository();
-  const storageService = createStorageService();
+  let storageService: StorageService | null = null;
+  const getStorageService = (): StorageService => {
+    if (!storageService) {
+      storageService = createStorageService();
+    }
+
+    return storageService;
+  };
 
   // Register multipart plugin for file uploads
   await server.register(multipart, {
@@ -187,7 +203,7 @@ export async function photoScreenRoutes(server: FastifyInstance) {
     const requester = getRequesterContext(request);
     const { householdId, tabletId, screenId } = request.params;
 
-    const useCase = new DeletePhotoScreenUseCase(repository, storageService);
+    const useCase = new DeletePhotoScreenUseCase(repository, getStorageService());
     await useCase.execute({
       householdId,
       tabletId,
@@ -236,9 +252,10 @@ export async function photoScreenRoutes(server: FastifyInstance) {
     const mimeType = data.mimetype;
 
     // Parse form fields
-    const fields = data.fields as any;
-    const caption = fields.caption?.value as string | undefined;
-    const order = fields.order ? parseInt(fields.order.value as string, 10) : 0;
+    const fields = data.fields as MultipartFields;
+    const caption = getMultipartFieldValue(fields.caption);
+    const orderValue = getMultipartFieldValue(fields.order);
+    const order = orderValue ? parseInt(orderValue, 10) : 0;
 
     // Validate caption length
     if (caption && caption.length > MAX_PHOTO_CAPTION_LENGTH) {
@@ -262,7 +279,7 @@ export async function photoScreenRoutes(server: FastifyInstance) {
       });
     }
 
-    const useCase = new UploadPhotoUseCase(repository, storageService);
+    const useCase = new UploadPhotoUseCase(repository, getStorageService());
     const photo = await useCase.execute({
       householdId,
       tabletId,
@@ -330,7 +347,7 @@ export async function photoScreenRoutes(server: FastifyInstance) {
     const requester = getRequesterContext(request);
     const { householdId, tabletId, screenId, photoId } = request.params;
 
-    const useCase = new DeletePhotoUseCase(repository, storageService);
+    const useCase = new DeletePhotoUseCase(repository, getStorageService());
     await useCase.execute({
       householdId,
       tabletId,

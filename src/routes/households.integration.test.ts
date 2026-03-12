@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
-import { forceExpireInvitationForTests } from '../data/repositories/InMemoryHouseholdRepository.js';
+import { DEFAULT_TEST_HOUSEHOLD_ID, forceExpireInvitationForTests } from '../data/repositories/InMemoryHouseholdRepository.js';
 
 const defaultHeaders = {
   'x-user-id': 'user-2',
@@ -74,7 +74,7 @@ describe('Household onboarding integration', () => {
 
     const bulkResponse = await app.inject({
       method: 'POST',
-      url: '/v1/households/household-1/invitations/bulk',
+      url: `/v1/households/${DEFAULT_TEST_HOUSEHOLD_ID}/invitations/bulk`,
       headers: defaultHeaders,
       payload: {
         users: [
@@ -152,7 +152,7 @@ describe('Household onboarding integration', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/v1/households/household-1/overview',
+      url: `/v1/households/${DEFAULT_TEST_HOUSEHOLD_ID}/overview`,
     });
 
     expect(response.statusCode).toBe(401);
@@ -164,7 +164,7 @@ describe('Household onboarding integration', () => {
 
     const bulkResponse = await app.inject({
       method: 'POST',
-      url: '/v1/households/household-1/invitations/bulk',
+      url: `/v1/households/${DEFAULT_TEST_HOUSEHOLD_ID}/invitations/bulk`,
       headers: defaultHeaders,
       payload: {
         users: [

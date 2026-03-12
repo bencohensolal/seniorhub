@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import { ListHouseholdDisplayTabletsUseCase } from '../../domain/usecases/displayTablets/ListHouseholdDisplayTabletsUseCase.js';
@@ -467,12 +467,12 @@ export const registerDisplayTabletRoutes = (
   fastify.get(
     '/v1/households/:householdId/display-tablets/:tabletId/config',
     {
-      preHandler: async (request: any, reply: any) => {
+      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         // Allow both user auth and tablet auth
         // Tablets can only read their own config
+        const params = householdTabletParamsSchema.parse(request.params);
         if (request.tabletSession) {
           // Tablet authentication - validate it's reading its own config
-          const params = request.params as any;
           if (request.tabletSession.tabletId !== params.tabletId) {
             return reply.status(403).send({
               status: 'error',
@@ -595,7 +595,9 @@ export const registerDisplayTabletRoutes = (
         );
 
         // Notify the tablet in real-time if connected via SSE
-        tabletConfigNotifier.notifyConfigUpdate(params.tabletId, tablet.config);
+        if (tablet.config) {
+          tabletConfigNotifier.notifyConfigUpdate(params.tabletId, tablet.config);
+        }
 
         return reply.status(200).send({
           success: true,
@@ -611,15 +613,14 @@ export const registerDisplayTabletRoutes = (
   fastify.get(
     '/v1/households/:householdId/display-tablets/:tabletId/config-updates',
     {
-      preHandler: async (request: any, reply: any) => {
+      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         // This endpoint accepts tablet authentication via:
         // 1. x-tablet-session-token (JWT from /authenticate)
         // 2. x-tablet-id + x-tablet-token (raw credentials)
+        const params = householdTabletParamsSchema.parse(request.params);
         
         // Try method 1: JWT session token (already set by global middleware)
         if (request.tabletSession) {
-          const params = request.params as any;
-          
           // Validate tablet can only subscribe to its own updates
           if (request.tabletSession.tabletId !== params.tabletId) {
             return reply.status(403).send({
@@ -650,7 +651,6 @@ export const registerDisplayTabletRoutes = (
         }
         
         // Validate tabletId matches URL
-        const params = request.params as any;
         if (tabletId !== params.tabletId) {
           return reply.status(403).send({
             status: 'error',

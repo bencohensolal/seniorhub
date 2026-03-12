@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import type { UpdatePrivacySettingsInput } from '../domain/entities/PrivacySettings.js';
 import type { GetUserPrivacySettingsUseCase } from '../domain/usecases/privacySettings/GetUserPrivacySettingsUseCase.js';
 import type { UpdateUserPrivacySettingsUseCase } from '../domain/usecases/privacySettings/UpdateUserPrivacySettingsUseCase.js';
 import { handleDomainError } from './errorHandler.js';
@@ -148,7 +149,7 @@ export function registerPrivacySettingsRoutes(
 
         const settings = await useCases.updateUserPrivacySettingsUseCase.execute({
           userId,
-          settings: bodyResult.data as import('../domain/entities/PrivacySettings.js').UpdatePrivacySettingsInput,
+          settings: bodyResult.data as UpdatePrivacySettingsInput,
         });
 
         return reply.status(200).send({

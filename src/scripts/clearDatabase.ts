@@ -11,23 +11,23 @@ async function clearDatabase() {
   const pool = new Pool({ connectionString: env.DATABASE_URL });
 
   try {
-    console.log('🗑️  Clearing all data from database...');
-    console.log('Database:', env.DATABASE_URL.split('@')[1]?.split('/')[0]);
+    console.info('🗑️  Clearing all data from database...');
+    console.info('Database:', env.DATABASE_URL.split('@')[1]?.split('/')[0]);
 
     await pool.query('BEGIN');
 
     // Clear all tables in reverse dependency order
     await pool.query('TRUNCATE TABLE audit_events CASCADE');
-    console.log('✅ Cleared audit_events');
+    console.info('✅ Cleared audit_events');
 
     await pool.query('TRUNCATE TABLE household_invitations CASCADE');
-    console.log('✅ Cleared household_invitations');
+    console.info('✅ Cleared household_invitations');
 
     await pool.query('TRUNCATE TABLE household_members CASCADE');
-    console.log('✅ Cleared household_members');
+    console.info('✅ Cleared household_members');
 
     await pool.query('TRUNCATE TABLE households CASCADE');
-    console.log('✅ Cleared households');
+    console.info('✅ Cleared households');
 
     await pool.query('COMMIT');
 
@@ -42,12 +42,12 @@ async function clearDatabase() {
       SELECT 'audit_events', COUNT(*) FROM audit_events
     `);
 
-    console.log('\n📊 Verification:');
+    console.info('\n📊 Verification:');
     result.rows.forEach((row) => {
-      console.log(`  ${row.table_name}: ${row.count} rows`);
+      console.info(`  ${row.table_name}: ${row.count} rows`);
     });
 
-    console.log('\n✨ Database cleared successfully!');
+    console.info('\n✨ Database cleared successfully!');
   } catch (error) {
     await pool.query('ROLLBACK');
     console.error('❌ Error clearing database:', error);

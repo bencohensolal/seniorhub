@@ -3,12 +3,34 @@ import { describe, expect, it } from 'vitest';
 import { registerAuthContext } from '../../plugins/authContext.js';
 import { registerMedicationRoutes } from './medicationRoutes.js';
 
+type MedicationRouteUseCases = Parameters<typeof registerMedicationRoutes>[1];
+
+const buildUseCases = (overrides: Partial<MedicationRouteUseCases>): MedicationRouteUseCases => ({
+  listHouseholdMedicationsUseCase: {
+    execute: async () => [],
+  } as unknown as MedicationRouteUseCases['listHouseholdMedicationsUseCase'],
+  createMedicationUseCase: {
+    execute: async () => {
+      throw new Error('not used');
+    },
+  } as unknown as MedicationRouteUseCases['createMedicationUseCase'],
+  updateMedicationUseCase: {
+    execute: async () => {
+      throw new Error('not used');
+    },
+  } as unknown as MedicationRouteUseCases['updateMedicationUseCase'],
+  deleteMedicationUseCase: {
+    execute: async () => undefined,
+  } as unknown as MedicationRouteUseCases['deleteMedicationUseCase'],
+  ...overrides,
+});
+
 describe('registerMedicationRoutes', () => {
   it('keeps reminders in the medication list response', async () => {
     const app = Fastify();
     registerAuthContext(app);
 
-    registerMedicationRoutes(app, {
+    registerMedicationRoutes(app, buildUseCases({
       listHouseholdMedicationsUseCase: {
         execute: async () => [
           {
@@ -40,21 +62,8 @@ describe('registerMedicationRoutes', () => {
             updatedAt: '2026-03-12T20:00:00.000Z',
           },
         ],
-      } as any,
-      createMedicationUseCase: {
-        execute: async () => {
-          throw new Error('not used');
-        },
-      } as any,
-      updateMedicationUseCase: {
-        execute: async () => {
-          throw new Error('not used');
-        },
-      } as any,
-      deleteMedicationUseCase: {
-        execute: async () => undefined,
-      } as any,
-    });
+      } as unknown as MedicationRouteUseCases['listHouseholdMedicationsUseCase'],
+    }));
 
     const response = await app.inject({
       method: 'GET',
@@ -86,10 +95,7 @@ describe('registerMedicationRoutes', () => {
     const app = Fastify();
     registerAuthContext(app);
 
-    registerMedicationRoutes(app, {
-      listHouseholdMedicationsUseCase: {
-        execute: async () => [],
-      } as any,
+    registerMedicationRoutes(app, buildUseCases({
       createMedicationUseCase: {
         execute: async () => ({
           id: 'medication-123',
@@ -108,16 +114,8 @@ describe('registerMedicationRoutes', () => {
           createdAt: '2026-03-12T20:00:00.000Z',
           updatedAt: '2026-03-12T20:00:00.000Z',
         }),
-      } as any,
-      updateMedicationUseCase: {
-        execute: async () => {
-          throw new Error('not used');
-        },
-      } as any,
-      deleteMedicationUseCase: {
-        execute: async () => undefined,
-      } as any,
-    });
+      } as unknown as MedicationRouteUseCases['createMedicationUseCase'],
+    }));
 
     const response = await app.inject({
       method: 'POST',

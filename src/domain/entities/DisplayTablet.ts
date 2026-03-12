@@ -1,3 +1,5 @@
+import type { TabletDisplayConfig } from './TabletDisplayConfig.js';
+
 export type DisplayTabletStatus = 'active' | 'revoked';
 
 export interface DisplayTablet {
@@ -6,7 +8,7 @@ export interface DisplayTablet {
   name: string;
   description: string | null;
   tokenHash: string; // SHA-256 hash of the token (never expose the plain token except at creation)
-  config: any | null; // JSON configuration (use TabletDisplayConfig type for validation)
+  config: TabletDisplayConfig | null;
   createdAt: string;
   createdBy: string;
   lastActiveAt: string | null;

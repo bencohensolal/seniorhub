@@ -7,7 +7,7 @@
 
 import type { HouseholdRepository } from '../../repositories/HouseholdRepository.js';
 import type { AppointmentWithReminders } from '../../entities/Appointment.js';
-import type { GeneratedOccurrence } from '../../entities/AppointmentOccurrence.js';
+import type { GeneratedOccurrence, OccurrenceOverrides, OccurrenceStatus } from '../../entities/AppointmentOccurrence.js';
 import type { HouseholdAccessValidator } from '../shared/HouseholdAccessValidator.js';
 import { NotFoundError } from '../../errors/index.js';
 import { generateOccurrences } from '../../services/occurrenceGenerator.js';
@@ -96,15 +96,15 @@ export class ListAppointmentOccurrencesUseCase {
     occurrenceTime: string,
     storedOccurrence?: {
       id: string;
-      status: string;
-      overrides: any;
+      status: OccurrenceStatus;
+      overrides: OccurrenceOverrides | null;
       createdAt: string;
       updatedAt: string;
     },
   ): GeneratedOccurrence {
     const overrides = storedOccurrence?.overrides || {};
     const isModified = storedOccurrence?.status === 'modified' || false;
-    const status = (storedOccurrence?.status || 'scheduled') as any;
+    const status: OccurrenceStatus = storedOccurrence?.status || 'scheduled';
     const finalTime = overrides.time || occurrenceTime;
     const duration = overrides.duration !== undefined ? overrides.duration : appointment.duration;
 

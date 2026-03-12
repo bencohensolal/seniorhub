@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ScreenSettings } from '../../domain/entities/TabletDisplayConfig.js';
 
 // Screen type enum
 const screenTypeSchema = z.enum(['summary', 'datetime', 'appointments', 'tasks', 'weekCalendar', 'monthCalendar', 'photoGallery']);
@@ -101,7 +102,7 @@ export const tabletDisplayConfigSchema = z.object({
 });
 
 // Helper function to validate screen settings based on type
-export function validateScreenSettings(screen: { type: string; settings?: any }): boolean {
+export function validateScreenSettings(screen: { type: string; settings?: ScreenSettings }): boolean {
   if (!screen.settings) {
     return true; // Settings are optional
   }

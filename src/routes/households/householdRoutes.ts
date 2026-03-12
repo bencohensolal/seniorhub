@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { CreateHouseholdUseCase } from '../../domain/usecases/households/CreateHouseholdUseCase.js';
 import type { GetHouseholdOverviewUseCase } from '../../domain/usecases/households/GetHouseholdOverviewUseCase.js';
 import type { LeaveHouseholdUseCase } from '../../domain/usecases/households/LeaveHouseholdUseCase.js';
@@ -265,7 +265,7 @@ export const registerHouseholdRoutes = (
   fastify.get(
     '/v1/households/:householdId/members',
     {
-      preHandler: async (request: any, reply: any) => {
+      preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         // Allow both user auth and tablet auth
         if (!request.requester && !request.tabletSession) {
           return reply.status(401).send({
@@ -276,7 +276,7 @@ export const registerHouseholdRoutes = (
         
         // If tablet, verify it's accessing its own household
         if (request.tabletSession) {
-          const params = request.params as any;
+          const params = paramsSchema.parse(request.params);
           if (request.tabletSession.householdId !== params.householdId) {
             return reply.status(403).send({
               status: 'error',

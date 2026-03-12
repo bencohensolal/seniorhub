@@ -10,7 +10,11 @@ import type {
   HouseholdRepository,
   InvitationCandidate,
 } from '../../domain/repositories/HouseholdRepository.js';
+import type { DisplayTablet } from '../../domain/entities/DisplayTablet.js';
 import type { Medication, CreateMedicationInput, UpdateMedicationInput } from '../../domain/entities/Medication.js';
+import type { PrivacySettings } from '../../domain/entities/PrivacySettings.js';
+import type { TabletDisplayConfig } from '../../domain/entities/TabletDisplayConfig.js';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
 import { nowIso, addHours, hashToken, normalizeEmail, normalizeName } from './postgres/helpers.js';
 
 const INVITATION_TTL_HOURS = 72;
@@ -20,9 +24,11 @@ const buildDisplayName = (firstName: string, lastName: string): { firstName: str
   lastName: normalizeName(lastName),
 });
 
+export const DEFAULT_TEST_HOUSEHOLD_ID = '3617e173-d359-492b-94b7-4c32622e7526';
+
 const households: Household[] = [
   {
-    id: 'household-1',
+    id: DEFAULT_TEST_HOUSEHOLD_ID,
     name: 'Martin Family Home',
     createdByUserId: 'user-2',
     createdAt: nowIso(),
@@ -33,7 +39,7 @@ const households: Household[] = [
 const members: Member[] = [
   {
     id: 'member-1',
-    householdId: 'household-1',
+    householdId: DEFAULT_TEST_HOUSEHOLD_ID,
     userId: 'user-1',
     email: 'alice@example.com',
     firstName: 'Alice',
@@ -45,7 +51,7 @@ const members: Member[] = [
   },
   {
     id: 'member-2',
-    householdId: 'household-1',
+    householdId: DEFAULT_TEST_HOUSEHOLD_ID,
     userId: 'user-2',
     email: 'ben@example.com',
     firstName: 'Ben',
@@ -348,7 +354,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
 
     if (input.token) {
       if (!isInvitationTokenValid(input.token, env.TOKEN_SIGNING_SECRET)) {
-        throw new Error('Invitation not found.');
+        throw new NotFoundError('Invitation not found.');
       }
 
       const tokenHash = hashToken(input.token);
@@ -362,20 +368,20 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     }
 
     if (!invitation) {
-      throw new Error('Invitation not found.');
+      throw new NotFoundError('Invitation not found.');
     }
 
     if (invitation.inviteeEmail !== email) {
-      throw new Error('Access denied to this invitation.');
+      throw new ForbiddenError('Access denied to this invitation.');
     }
 
     if (invitation.status !== 'pending') {
-      throw new Error('Invitation is not pending.');
+      throw new ConflictError('Invitation is not pending.');
     }
 
     if (new Date(invitation.tokenExpiresAt) <= new Date()) {
       invitation.status = 'expired';
-      throw new Error('Invitation expired. Please request a new invitation.');
+      throw new ConflictError('Invitation expired. Please request a new invitation.');
     }
 
     invitation.status = 'accepted';
@@ -778,7 +784,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     throw new Error('Display tablet operations not implemented in InMemoryRepository');
   }
 
-  async updateDisplayTabletConfig(_tabletId: string, _householdId: string, _config: any): Promise<any> {
+  async updateDisplayTabletConfig(_tabletId: string, _householdId: string, _config: TabletDisplayConfig): Promise<DisplayTablet> {
     throw new Error('Display tablet operations not implemented in InMemoryRepository');
   }
 
@@ -849,7 +855,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     throw new Error('Privacy settings operations not implemented in InMemoryRepository');
   }
 
-  async getBulkPrivacySettings(_userIds: string[]): Promise<Map<string, import('../../domain/entities/PrivacySettings.js').PrivacySettings>> {
+  async getBulkPrivacySettings(_userIds: string[]): Promise<Map<string, PrivacySettings>> {
     return new Map();
   }
 }

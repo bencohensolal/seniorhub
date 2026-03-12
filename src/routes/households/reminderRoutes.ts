@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { UpdateReminderInput } from '../../domain/entities/MedicationReminder.js';
 import type { ListMedicationRemindersUseCase } from '../../domain/usecases/reminders/ListMedicationRemindersUseCase.js';
 import type { CreateReminderUseCase } from '../../domain/usecases/reminders/CreateReminderUseCase.js';
 import type { UpdateReminderUseCase } from '../../domain/usecases/reminders/UpdateReminderUseCase.js';
@@ -222,7 +223,7 @@ export function registerReminderRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateReminderInput = {};
         const body = bodyResult.data;
 
         if (body.time !== undefined) updateData.time = body.time;

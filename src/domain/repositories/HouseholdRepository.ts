@@ -11,6 +11,7 @@ import type { AppointmentOccurrence, CreateOccurrenceInput, UpdateOccurrenceInpu
 import type { Task, TaskWithReminders, CreateTaskInput, UpdateTaskInput, CompleteTaskInput } from '../entities/Task.js';
 import type { TaskReminder, CreateTaskReminderInput, UpdateTaskReminderInput } from '../entities/TaskReminder.js';
 import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthInfo } from '../entities/DisplayTablet.js';
+import type { TabletDisplayConfig } from '../entities/TabletDisplayConfig.js';
 import type { PhotoScreen, PhotoScreenWithPhotos, Photo, CreatePhotoScreenInput, UpdatePhotoScreenInput, CreatePhotoInput, UpdatePhotoInput } from '../entities/PhotoScreen.js';
 import type { PrivacySettings, UpdatePrivacySettingsInput } from '../entities/PrivacySettings.js';
 
@@ -154,7 +155,7 @@ export interface HouseholdRepository {
   regenerateDisplayTabletToken(tabletId: string, householdId: string): Promise<DisplayTabletWithToken>;
   authenticateDisplayTablet(tabletId: string, token: string): Promise<DisplayTabletAuthInfo | null>;
   countActiveDisplayTablets(householdId: string): Promise<number>;
-  updateDisplayTabletConfig(tabletId: string, householdId: string, config: any): Promise<DisplayTablet>;
+  updateDisplayTabletConfig(tabletId: string, householdId: string, config: TabletDisplayConfig): Promise<DisplayTablet>;
 
   // Photo Screens
   listPhotoScreens(tabletId: string, householdId: string): Promise<PhotoScreenWithPhotos[]>;

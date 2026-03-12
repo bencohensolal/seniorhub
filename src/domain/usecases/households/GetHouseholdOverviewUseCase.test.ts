@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
+import { DEFAULT_TEST_HOUSEHOLD_ID, InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
 import { GetHouseholdOverviewUseCase } from './GetHouseholdOverviewUseCase.js';
 
 describe('GetHouseholdOverviewUseCase', () => {
@@ -8,11 +8,11 @@ describe('GetHouseholdOverviewUseCase', () => {
     const useCase = new GetHouseholdOverviewUseCase(repository);
 
     const result = await useCase.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       requesterUserId: 'user-2',
     });
 
-    expect(result.household.id).toBe('household-1');
+    expect(result.household.id).toBe(DEFAULT_TEST_HOUSEHOLD_ID);
     expect(result.membersCount).toBeGreaterThan(0);
   });
 
@@ -21,7 +21,7 @@ describe('GetHouseholdOverviewUseCase', () => {
     const useCase = new GetHouseholdOverviewUseCase(repository);
 
     await expect(
-      useCase.execute({ householdId: 'household-1', requesterUserId: 'user-999' }),
+      useCase.execute({ householdId: DEFAULT_TEST_HOUSEHOLD_ID, requesterUserId: 'user-999' }),
     ).rejects.toThrow('Access denied to this household.');
   });
 });

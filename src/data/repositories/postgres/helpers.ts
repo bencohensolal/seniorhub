@@ -9,6 +9,7 @@ import type { AppointmentOccurrence, OccurrenceStatus, OccurrenceOverrides } fro
 import type { Task, TaskCategory, TaskPriority, TaskStatus, TaskRecurrence } from '../../../domain/entities/Task.js';
 import type { TaskReminder } from '../../../domain/entities/TaskReminder.js';
 import type { DisplayTablet, DisplayTabletStatus } from '../../../domain/entities/DisplayTablet.js';
+import type { TabletDisplayConfig } from '../../../domain/entities/TabletDisplayConfig.js';
 
 // Date and time helpers
 export const nowIso = (): string => new Date().toISOString();
@@ -293,7 +294,7 @@ export const mapDisplayTablet = (row: {
   name: string;
   description: string | null;
   token_hash: string;
-  config: any | null;
+  config: TabletDisplayConfig | null;
   created_at: string | Date;
   created_by: string;
   last_active_at: string | Date | null;

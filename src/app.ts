@@ -39,9 +39,10 @@ export const buildApp = () => {
     try {
       const json = JSON.parse(body as string);
       done(null, json);
-    } catch (err: any) {
-      err.statusCode = 400;
-      done(err, undefined);
+    } catch (err: unknown) {
+      const parseError = err instanceof Error ? err : new Error('Invalid JSON payload');
+      Object.assign(parseError, { statusCode: 400 });
+      done(parseError, undefined);
     }
   });
 

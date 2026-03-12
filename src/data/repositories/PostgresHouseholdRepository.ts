@@ -43,6 +43,9 @@ import {
   mapDisplayTablet,
 } from './postgres/helpers.js';
 import type { DisplayTablet, DisplayTabletWithToken, CreateDisplayTabletInput, UpdateDisplayTabletInput, DisplayTabletAuthInfo, DisplayTabletStatus } from '../../domain/entities/DisplayTablet.js';
+import type { TabletDisplayConfig } from '../../domain/entities/TabletDisplayConfig.js';
+import type { CreatePhotoInput, CreatePhotoScreenInput, Photo, PhotoScreen, PhotoScreenWithPhotos, UpdatePhotoInput, UpdatePhotoScreenInput } from '../../domain/entities/PhotoScreen.js';
+import type { PrivacySettings, UpdatePrivacySettingsInput } from '../../domain/entities/PrivacySettings.js';
 import { generateDisplayTabletToken, hashDisplayTabletToken } from '../../domain/security/displayTabletToken.js';
 
 const INVITATION_TTL_HOURS = 72;
@@ -1884,7 +1887,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       WHERE recurring_appointment_id = $1 AND household_id = $2
     `;
     
-    const params: any[] = [appointmentId, householdId];
+    const params: unknown[] = [appointmentId, householdId];
     let paramIndex = 3;
 
     if (fromDate) {
@@ -2037,7 +2040,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       WHERE household_id = $1
     `;
     
-    const params: any[] = [householdId];
+    const params: unknown[] = [householdId];
     let paramIndex = 2;
 
     if (filters?.status) {
@@ -2574,7 +2577,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2600,7 +2603,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2632,7 +2635,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2692,7 +2695,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2753,7 +2756,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2843,14 +2846,14 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     return parseInt(result.rows[0]?.count || '0', 10);
   }
 
-  async updateDisplayTabletConfig(tabletId: string, householdId: string, config: any): Promise<DisplayTablet> {
+  async updateDisplayTabletConfig(tabletId: string, householdId: string, config: TabletDisplayConfig): Promise<DisplayTablet> {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
       name: string;
       description: string | null;
       token_hash: string;
-      config: any | null;
+      config: TabletDisplayConfig | null;
       created_at: string | Date;
       created_by: string;
       last_active_at: string | Date | null;
@@ -2876,7 +2879,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
   // Photo Screens
 
-  async listPhotoScreens(tabletId: string, householdId: string): Promise<import('../../domain/entities/PhotoScreen.js').PhotoScreenWithPhotos[]> {
+  async listPhotoScreens(tabletId: string, householdId: string): Promise<PhotoScreenWithPhotos[]> {
     // Fetch all photo screens for the tablet
     const screensResult = await this.pool.query<{
       id: string;
@@ -2903,7 +2906,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
     // Fetch all photos for these screens
     const screenIds = screensResult.rows.map(row => row.id);
-    let photosMap: Map<string, import('../../domain/entities/PhotoScreen.js').Photo[]> = new Map();
+    let photosMap: Map<string, Photo[]> = new Map();
 
     if (screenIds.length > 0) {
       const photosResult = await this.pool.query<{
@@ -2924,7 +2927,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
       // Group photos by screen_id
       for (const row of photosResult.rows) {
-        const photo: import('../../domain/entities/PhotoScreen.js').Photo = {
+        const photo: Photo = {
           id: row.id,
           photoScreenId: row.photo_screen_id,
           url: row.url,
@@ -2958,7 +2961,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }));
   }
 
-  async getPhotoScreenById(photoScreenId: string, tabletId: string, householdId: string): Promise<import('../../domain/entities/PhotoScreen.js').PhotoScreenWithPhotos | null> {
+  async getPhotoScreenById(photoScreenId: string, tabletId: string, householdId: string): Promise<PhotoScreenWithPhotos | null> {
     const screenResult = await this.pool.query<{
       id: string;
       tablet_id: string;
@@ -3004,7 +3007,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       [photoScreenId],
     );
 
-    const photos: import('../../domain/entities/PhotoScreen.js').Photo[] = photosResult.rows.map(photoRow => ({
+    const photos: Photo[] = photosResult.rows.map(photoRow => ({
       id: photoRow.id,
       photoScreenId: photoRow.photo_screen_id,
       url: photoRow.url,
@@ -3031,7 +3034,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async createPhotoScreen(input: import('../../domain/entities/PhotoScreen.js').CreatePhotoScreenInput): Promise<import('../../domain/entities/PhotoScreen.js').PhotoScreen> {
+  async createPhotoScreen(input: CreatePhotoScreenInput): Promise<PhotoScreen> {
     const id = randomUUID();
     const now = nowIso();
     const displayMode = input.displayMode || 'slideshow';
@@ -3098,7 +3101,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async updatePhotoScreen(photoScreenId: string, tabletId: string, householdId: string, input: import('../../domain/entities/PhotoScreen.js').UpdatePhotoScreenInput): Promise<import('../../domain/entities/PhotoScreen.js').PhotoScreen> {
+  async updatePhotoScreen(photoScreenId: string, tabletId: string, householdId: string, input: UpdatePhotoScreenInput): Promise<PhotoScreen> {
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -3209,7 +3212,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
   // Photos
 
-  async listPhotos(photoScreenId: string, householdId: string): Promise<import('../../domain/entities/PhotoScreen.js').Photo[]> {
+  async listPhotos(photoScreenId: string, householdId: string): Promise<Photo[]> {
     const result = await this.pool.query<{
       id: string;
       photo_screen_id: string;
@@ -3238,7 +3241,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }));
   }
 
-  async getPhotoById(photoId: string, photoScreenId: string, householdId: string): Promise<import('../../domain/entities/PhotoScreen.js').Photo | null> {
+  async getPhotoById(photoId: string, photoScreenId: string, householdId: string): Promise<Photo | null> {
     const result = await this.pool.query<{
       id: string;
       photo_screen_id: string;
@@ -3272,7 +3275,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async createPhoto(input: import('../../domain/entities/PhotoScreen.js').CreatePhotoInput): Promise<import('../../domain/entities/PhotoScreen.js').Photo> {
+  async createPhoto(input: CreatePhotoInput): Promise<Photo> {
     const id = randomUUID();
     const now = nowIso();
 
@@ -3307,7 +3310,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async updatePhoto(photoId: string, photoScreenId: string, householdId: string, input: import('../../domain/entities/PhotoScreen.js').UpdatePhotoInput): Promise<import('../../domain/entities/PhotoScreen.js').Photo> {
+  async updatePhoto(photoId: string, photoScreenId: string, householdId: string, input: UpdatePhotoInput): Promise<Photo> {
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -3389,7 +3392,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     return parseInt(result.rows[0]?.count || '0', 10);
   }
 
-  async reorderPhotos(photoScreenId: string, householdId: string, photoOrders: Array<{ id: string; order: number }>): Promise<import('../../domain/entities/PhotoScreen.js').Photo[]> {
+  async reorderPhotos(photoScreenId: string, householdId: string, photoOrders: Array<{ id: string; order: number }>): Promise<Photo[]> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -3454,7 +3457,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
   // Privacy Settings
 
-  async getUserPrivacySettings(userId: string): Promise<import('../../domain/entities/PrivacySettings.js').PrivacySettings | null> {
+  async getUserPrivacySettings(userId: string): Promise<PrivacySettings | null> {
     const result = await this.pool.query<{
       id: string;
       user_id: string;
@@ -3490,7 +3493,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async updateUserPrivacySettings(userId: string, input: import('../../domain/entities/PrivacySettings.js').UpdatePrivacySettingsInput): Promise<import('../../domain/entities/PrivacySettings.js').PrivacySettings> {
+  async updateUserPrivacySettings(userId: string, input: UpdatePrivacySettingsInput): Promise<PrivacySettings> {
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -3567,7 +3570,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     };
   }
 
-  async getBulkPrivacySettings(userIds: string[]): Promise<Map<string, import('../../domain/entities/PrivacySettings.js').PrivacySettings>> {
+  async getBulkPrivacySettings(userIds: string[]): Promise<Map<string, PrivacySettings>> {
     if (userIds.length === 0) {
       return new Map();
     }
@@ -3589,7 +3592,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       [userIds],
     );
 
-    const settingsMap = new Map<string, import('../../domain/entities/PrivacySettings.js').PrivacySettings>();
+    const settingsMap = new Map<string, PrivacySettings>();
 
     for (const row of result.rows) {
       settingsMap.set(row.user_id, {

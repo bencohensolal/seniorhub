@@ -19,7 +19,7 @@ export class TabletConfigNotifier {
     // Store the new connection
     this.connections.set(tabletId, reply);
 
-    console.log(`[TabletConfigNotifier] Tablet ${tabletId} registered for config updates (${this.connections.size} active)`);
+    console.info(`[TabletConfigNotifier] Tablet ${tabletId} registered for config updates (${this.connections.size} active)`);
 
     // Send initial connection confirmation
     this.sendEvent(reply, 'connected', {
@@ -44,7 +44,7 @@ export class TabletConfigNotifier {
         console.error(`[TabletConfigNotifier] Error closing connection for ${tabletId}:`, error);
       }
       this.connections.delete(tabletId);
-      console.log(`[TabletConfigNotifier] Tablet ${tabletId} unregistered (${this.connections.size} active)`);
+      console.info(`[TabletConfigNotifier] Tablet ${tabletId} unregistered (${this.connections.size} active)`);
     }
   }
 

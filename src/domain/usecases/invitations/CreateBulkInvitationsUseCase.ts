@@ -1,5 +1,6 @@
 import type { AuthenticatedRequester } from '../../entities/Household.js';
 import type { BulkInvitationResult, HouseholdRepository, InvitationCandidate } from '../../repositories/HouseholdRepository.js';
+import { ForbiddenError } from '../../errors/index.js';
 import { HouseholdAccessValidator } from '../shared/index.js';
 
 /**
@@ -24,7 +25,15 @@ export class CreateBulkInvitationsUseCase {
     users: InvitationCandidate[];
   }): Promise<BulkInvitationResult> {
     // Validate caregiver access
-    await this.accessValidator.ensureCaregiver(input.requester.userId, input.householdId);
+    try {
+      await this.accessValidator.ensureCaregiver(input.requester.userId, input.householdId);
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        throw new ForbiddenError('Only caregivers can send invitations.');
+      }
+
+      throw error;
+    }
 
     return this.repository.createBulkInvitations({
       householdId: input.householdId,

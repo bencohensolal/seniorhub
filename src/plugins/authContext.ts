@@ -1,16 +1,26 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'crypto';
 import { verifyTabletSessionToken } from '../domain/security/displayTabletSession.js';
 import type { HouseholdRepository } from '../domain/repositories/HouseholdRepository.js';
 import { createHouseholdRepository } from '../data/repositories/createHouseholdRepository.js';
 
 const normalize = (value: string | undefined): string => (value && value.trim().length > 0 ? value.trim() : '');
+const getStringClaim = (payload: Record<string, unknown>, ...keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+};
 
 /**
  * Decode a JWT token (simple base64 decode for development)
  * In production, this should use proper JWT verification with a secret key
  */
-const decodeJWT = (token: string): any => {
+const decodeJWT = (token: string): Record<string, unknown> | null => {
   try {
     // Split the JWT into parts
     const parts = token.split('.');
@@ -168,11 +178,13 @@ export const registerAuthContext = (fastify: FastifyInstance): void => {
       try {
         const decoded = decodeJWT(token);
         if (decoded) {
+          const firstName = getStringClaim(decoded, 'firstName', 'given_name', 'first_name');
+          const lastName = getStringClaim(decoded, 'lastName', 'family_name', 'last_name');
           userContext = {
-            userId: decoded.sub || decoded.userId || decoded.user_id,
-            email: decoded.email,
-            firstName: decoded.firstName || decoded.given_name || decoded.first_name,
-            lastName: decoded.lastName || decoded.family_name || decoded.last_name,
+            userId: getStringClaim(decoded, 'sub', 'userId', 'user_id') || '',
+            email: getStringClaim(decoded, 'email') || '',
+            ...(firstName !== undefined && { firstName }),
+            ...(lastName !== undefined && { lastName }),
           };
         }
       } catch (error) {
@@ -214,7 +226,7 @@ export const registerAuthContext = (fastify: FastifyInstance): void => {
  * Middleware to require write permission
  * This will block tablet sessions from write operations
  */
-export const requireWritePermission = async (request: any, reply: any): Promise<void> => {
+export const requireWritePermission = async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
   // If this is a tablet session, deny write access
   if (request.tabletSession) {
     return reply.status(403).send({
@@ -236,7 +248,7 @@ export const requireWritePermission = async (request: any, reply: any): Promise<
  * Middleware to require user authentication (blocks tablets)
  * Use this for routes that should only be accessible to authenticated users, not tablets
  */
-export const requireUserAuth = async (request: any, reply: any): Promise<void> => {
+export const requireUserAuth = async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
   if (!request.requester) {
     return reply.status(401).send({
       status: 'error',

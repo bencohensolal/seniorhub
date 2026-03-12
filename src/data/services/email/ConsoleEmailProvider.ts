@@ -12,13 +12,13 @@ export class ConsoleEmailProvider implements EmailProvider {
       throw new Error('Simulated email provider failure.');
     }
 
-    console.log('\n' + '='.repeat(80));
-    console.log('📧 INVITATION EMAIL (Development Mode - Not Actually Sent)');
-    console.log('='.repeat(80));
-    console.log(`To: ${message.to}`);
-    console.log(`Subject: ${message.subject}`);
-    console.log('-'.repeat(80));
-    console.log(message.body);
-    console.log('='.repeat(80) + '\n');
+    console.info('\n' + '='.repeat(80));
+    console.info('📧 INVITATION EMAIL (Development Mode - Not Actually Sent)');
+    console.info('='.repeat(80));
+    console.info(`To: ${message.to}`);
+    console.info(`Subject: ${message.subject}`);
+    console.info('-'.repeat(80));
+    console.info(message.body);
+    console.info('='.repeat(80) + '\n');
   }
 }

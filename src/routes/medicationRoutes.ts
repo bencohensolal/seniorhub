@@ -91,7 +91,7 @@ export function registerPublicMedicationRoutes(fastify: FastifyInstance): void {
       }
 
       // Log public request (no auth required for this endpoint)
-      console.log(`[MedicationAutocomplete] Public search for "${queryResult.data.term}" (locale: ${queryResult.data.locale})`);
+      console.info(`[MedicationAutocomplete] Public search for "${queryResult.data.term}" (locale: ${queryResult.data.locale})`);
 
       try {
         const suggestions = await medicationAutocompleteUseCase.execute({

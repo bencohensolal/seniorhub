@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
+import { DEFAULT_TEST_HOUSEHOLD_ID, InMemoryHouseholdRepository } from '../../../data/repositories/InMemoryHouseholdRepository.js';
 import { CreateBulkInvitationsUseCase } from './CreateBulkInvitationsUseCase.js';
 
 describe('CreateBulkInvitationsUseCase', () => {
@@ -9,7 +9,7 @@ describe('CreateBulkInvitationsUseCase', () => {
 
     await expect(
       useCase.execute({
-        householdId: 'household-1',
+        householdId: DEFAULT_TEST_HOUSEHOLD_ID,
         requester: {
           userId: 'user-1',
           email: 'alice@example.com',
@@ -33,7 +33,7 @@ describe('CreateBulkInvitationsUseCase', () => {
     const useCase = new CreateBulkInvitationsUseCase(repository);
 
     const result = await useCase.execute({
-      householdId: 'household-1',
+      householdId: DEFAULT_TEST_HOUSEHOLD_ID,
       requester: {
         userId: 'user-2',
         email: 'ben@example.com',

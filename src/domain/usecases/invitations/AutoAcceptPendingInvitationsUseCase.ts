@@ -22,7 +22,7 @@ export class AutoAcceptPendingInvitationsUseCase {
   async execute(input: {
     requester: AuthenticatedRequester;
   }): Promise<AutoAcceptResult> {
-    console.log('[AutoAcceptInvitations] Checking pending invitations for:', {
+    console.info('[AutoAcceptInvitations] Checking pending invitations for:', {
       email: input.requester.email,
       userId: input.requester.userId,
     });
@@ -32,7 +32,7 @@ export class AutoAcceptPendingInvitationsUseCase {
       input.requester.email,
     );
 
-    console.log('[AutoAcceptInvitations] Found pending invitations:', {
+    console.info('[AutoAcceptInvitations] Found pending invitations:', {
       count: pendingInvitations.length,
       invitations: pendingInvitations.map(inv => ({
         id: inv.id,
@@ -60,7 +60,7 @@ export class AutoAcceptPendingInvitationsUseCase {
 
         results.push(result);
 
-        console.log('[AutoAcceptInvitations] Accepted invitation:', {
+        console.info('[AutoAcceptInvitations] Accepted invitation:', {
           invitationId: invitation.id,
           householdId: result.householdId,
           role: result.role,
@@ -74,7 +74,7 @@ export class AutoAcceptPendingInvitationsUseCase {
       }
     }
 
-    console.log('[AutoAcceptInvitations] Auto-acceptance complete:', {
+    console.info('[AutoAcceptInvitations] Auto-acceptance complete:', {
       total: pendingInvitations.length,
       accepted: results.length,
       failed: pendingInvitations.length - results.length,

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { UpdateMedicationInput } from '../../domain/entities/Medication.js';
 import type { ListHouseholdMedicationsUseCase } from '../../domain/usecases/medications/ListHouseholdMedicationsUseCase.js';
 import type { CreateMedicationUseCase } from '../../domain/usecases/medications/CreateMedicationUseCase.js';
 import type { UpdateMedicationUseCase } from '../../domain/usecases/medications/UpdateMedicationUseCase.js';
@@ -23,6 +24,8 @@ export function registerMedicationRoutes(
     deleteMedicationUseCase: DeleteMedicationUseCase;
   },
 ): void {
+  type CreateMedicationRouteInput = Parameters<CreateMedicationUseCase['execute']>[0];
+
   // GET /v1/households/:householdId/medications - List household medications
   fastify.get(
     '/v1/households/:householdId/medications',
@@ -138,7 +141,7 @@ export function registerMedicationRoutes(
 
 
       try {
-        const inputData: any = {
+        const inputData: CreateMedicationRouteInput = {
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
           seniorId: bodyResult.data.seniorId,
@@ -226,7 +229,7 @@ export function registerMedicationRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateMedicationInput = {};
         const body = bodyResult.data;
 
         if (body.name !== undefined) updateData.name = body.name;

@@ -1,3 +1,5 @@
+import type { AppointmentReminder } from './AppointmentReminder.js';
+
 /**
  * AppointmentOccurrence Entity
  * 
@@ -97,7 +99,7 @@ export interface GeneratedOccurrence {
   notes: string | null;
   
   // Reminders (inherited from recurring appointment)
-  reminders: any[]; // AppointmentReminder[]
+  reminders: AppointmentReminder[];
   
   createdAt: string;
   updatedAt: string;

@@ -1,4 +1,7 @@
 import type { FastifyInstance } from 'fastify';
+import type { z } from 'zod';
+import type { CompleteTaskInput, CreateTaskInput, TaskCategory, TaskRecurrence, TaskStatus, UpdateTaskInput } from '../../domain/entities/Task.js';
+import type { CreateTaskReminderInput, UpdateTaskReminderInput } from '../../domain/entities/TaskReminder.js';
 import type { ListHouseholdTasksUseCase } from '../../domain/usecases/tasks/ListHouseholdTasksUseCase.js';
 import type { CreateTaskUseCase } from '../../domain/usecases/tasks/CreateTaskUseCase.js';
 import type { UpdateTaskUseCase } from '../../domain/usecases/tasks/UpdateTaskUseCase.js';
@@ -35,6 +38,24 @@ export function registerTaskRoutes(
     deleteTaskReminderUseCase: DeleteTaskReminderUseCase;
   },
 ): void {
+  type CreateTaskRouteInput = Parameters<CreateTaskUseCase['execute']>[0];
+  type TaskRecurrenceInput = z.infer<typeof createTaskBodySchema>['recurrence'];
+
+  const normalizeTaskRecurrence = (recurrence: TaskRecurrenceInput): TaskRecurrence | undefined => {
+    if (!recurrence) {
+      return undefined;
+    }
+
+    return {
+      frequency: recurrence.frequency,
+      interval: recurrence.interval,
+      ...(recurrence.daysOfWeek !== undefined && { daysOfWeek: recurrence.daysOfWeek }),
+      ...(recurrence.dayOfMonth !== undefined && { dayOfMonth: recurrence.dayOfMonth }),
+      ...(recurrence.endDate !== undefined && { endDate: recurrence.endDate }),
+      ...(recurrence.occurrences !== undefined && { occurrences: recurrence.occurrences }),
+    };
+  };
+
   // GET /v1/households/:householdId/tasks - List household tasks
   fastify.get(
     '/v1/households/:householdId/tasks',
@@ -87,7 +108,13 @@ export function registerTaskRoutes(
 
       try {
         const filters = queryResult.data;
-        const taskFilters: any = {};
+        const taskFilters: {
+          status?: TaskStatus;
+          seniorId?: string;
+          category?: TaskCategory;
+          fromDate?: string;
+          toDate?: string;
+        } = {};
         if (filters.status) taskFilters.status = filters.status;
         if (filters.seniorId) taskFilters.seniorId = filters.seniorId;
         if (filters.category) taskFilters.category = filters.category;
@@ -168,7 +195,7 @@ export function registerTaskRoutes(
 
       try {
         const body = bodyResult.data;
-        const inputData: any = {
+        const inputData: CreateTaskRouteInput = {
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
           title: body.title,
@@ -182,7 +209,12 @@ export function registerTaskRoutes(
         if (body.dueTime !== undefined) inputData.dueTime = body.dueTime;
         if (body.duration !== undefined) inputData.duration = body.duration;
         if (body.caregiverId !== undefined) inputData.caregiverId = body.caregiverId;
-        if (body.recurrence !== undefined) inputData.recurrence = body.recurrence;
+        if (body.recurrence !== undefined) {
+          const recurrence = normalizeTaskRecurrence(body.recurrence);
+          if (recurrence !== undefined) {
+            inputData.recurrence = recurrence;
+          }
+        }
 
         const task = await useCases.createTaskUseCase.execute(inputData);
 
@@ -256,7 +288,7 @@ export function registerTaskRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateTaskInput = {};
         const body = bodyResult.data;
 
         if (body.title !== undefined) updateData.title = body.title;
@@ -267,7 +299,12 @@ export function registerTaskRoutes(
         if (body.dueDate !== undefined) updateData.dueDate = body.dueDate;
         if (body.dueTime !== undefined) updateData.dueTime = body.dueTime;
         if (body.duration !== undefined) updateData.duration = body.duration;
-        if (body.recurrence !== undefined) updateData.recurrence = body.recurrence;
+        if (body.recurrence !== undefined) {
+          const recurrence = body.recurrence ? normalizeTaskRecurrence(body.recurrence) : null;
+          if (recurrence !== undefined) {
+            updateData.recurrence = recurrence;
+          }
+        }
         if (body.caregiverId !== undefined) updateData.caregiverId = body.caregiverId;
 
         const task = await useCases.updateTaskUseCase.execute({
@@ -336,7 +373,11 @@ export function registerTaskRoutes(
 
       try {
         const body = bodyResult.data;
-        const inputData: any = {
+        const inputData: CompleteTaskInput & {
+          taskId: string;
+          householdId: string;
+          requester: ReturnType<typeof getRequesterContext>;
+        } = {
           taskId: paramsResult.data.taskId,
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
@@ -457,7 +498,10 @@ export function registerTaskRoutes(
 
       try {
         const body = bodyResult.data;
-        const inputData: any = {
+        const inputData: CreateTaskReminderInput & {
+          householdId: string;
+          requester: ReturnType<typeof getRequesterContext>;
+        } = {
           householdId: paramsResult.data.householdId,
           taskId: paramsResult.data.taskId,
           requester: getRequesterContext(request),
@@ -534,7 +578,7 @@ export function registerTaskRoutes(
       }
 
       try {
-        const updateData: any = {};
+        const updateData: UpdateTaskReminderInput = {};
         const body = bodyResult.data;
 
         if (body.time !== undefined) updateData.time = body.time;

@@ -17,7 +17,7 @@ export const getRequesterContext = (request: FastifyRequest): {
   if (request.requester) {
     return request.requester;
   }
-  
+
   // Tablets don't have user context, return system user
   if (request.tabletSession) {
     return {
@@ -27,7 +27,7 @@ export const getRequesterContext = (request: FastifyRequest): {
       lastName: 'Tablet',
     };
   }
-  
+
   throw new Error('No authentication context found');
 };
 
@@ -85,6 +85,9 @@ export const isUserRequest = (request: FastifyRequest): boolean => {
 const inviteRateState = new Map<string, { count: number; windowStartMs: number }>();
 const INVITE_RATE_LIMIT = 10;
 const INVITE_WINDOW_MS = 60_000;
+const tabletAuthRateState = new Map<string, { count: number; windowStartMs: number }>();
+const TABLET_AUTH_RATE_LIMIT = 8;
+const TABLET_AUTH_WINDOW_MS = 5 * 60_000;
 
 export const checkInviteRateLimit = (userId: string): boolean => {
   const now = Date.now();
@@ -100,6 +103,27 @@ export const checkInviteRateLimit = (userId: string): boolean => {
   }
 
   if (current.count >= INVITE_RATE_LIMIT) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+};
+
+export const checkTabletAuthRateLimit = (key: string): boolean => {
+  const now = Date.now();
+  const current = tabletAuthRateState.get(key);
+  if (!current) {
+    tabletAuthRateState.set(key, { count: 1, windowStartMs: now });
+    return true;
+  }
+
+  if (now - current.windowStartMs > TABLET_AUTH_WINDOW_MS) {
+    tabletAuthRateState.set(key, { count: 1, windowStartMs: now });
+    return true;
+  }
+
+  if (current.count >= TABLET_AUTH_RATE_LIMIT) {
     return false;
   }
 

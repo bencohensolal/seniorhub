@@ -374,3 +374,10 @@ Recommended order of improvements:
 3. Introduce a dedicated `setupToken` model distinct from the current long-lived tablet secret.
 4. Add explicit revocation checks so an already-issued session can be rejected quickly after tablet revocation when required.
 5. Add rate limiting and audit logging to the pairing endpoint.
+
+Implementation status as of step 2:
+
+- the mobile app already uses `x-tablet-session-token` for runtime calls
+- the backend now revalidates session-token requests against the live tablet state, so revoked tablets lose access immediately instead of waiting for session expiry
+- the pairing endpoint now has an in-memory rate limiter to reduce brute-force attempts
+- compatibility with raw tablet credentials still exists server-side for legacy callers, but the preferred path is now the session token

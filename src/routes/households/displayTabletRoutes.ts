@@ -14,6 +14,7 @@ import { tabletDisplayConfigSchema, validateScreenSettings } from './displayTabl
 import { ValidationError } from '../../domain/errors/index.js';
 import { tabletConfigNotifier } from '../../domain/services/tabletConfigNotifier.js';
 import { GetTabletConfigUseCase } from '../../domain/usecases/displayTablets/GetTabletConfigUseCase.js';
+import { checkTabletAuthRateLimit } from './utils.js';
 
 // Schemas
 const householdParamsSchema = z.object({
@@ -79,6 +80,13 @@ export const registerDisplayTabletRoutes = (
                   },
                 },
               },
+            },
+          },
+          429: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['error'] },
+              message: { type: 'string' },
             },
           },
         },
@@ -430,6 +438,8 @@ export const registerDisplayTabletRoutes = (
                     type: 'array',
                     items: { type: 'string' },
                   },
+                  sessionToken: { type: 'string' },
+                  expiresAt: { type: 'string' },
                 },
               },
             },
@@ -446,12 +456,28 @@ export const registerDisplayTabletRoutes = (
     async (request, reply) => {
       try {
         const body = authenticateTabletBodySchema.parse(request.body);
+        const rateLimitKey = `${request.ip}:${body.tabletId}`;
+
+        if (!checkTabletAuthRateLimit(rateLimitKey)) {
+          fastify.log.warn({ tabletId: body.tabletId, ip: request.ip }, 'Display tablet authentication rate limit reached');
+          return (reply as FastifyReply).status(429).send({
+            status: 'error',
+            message: 'Tablet authentication rate limit reached. Please try again later.',
+          });
+        }
+
         const useCase = new AuthenticateDisplayTabletUseCase(repository);
 
         const result = await useCase.execute({
           tabletId: body.tabletId,
           token: body.token,
         });
+
+        fastify.log.info({
+          tabletId: body.tabletId,
+          householdId: result.householdId,
+          ip: request.ip,
+        }, 'Display tablet authenticated successfully');
 
         return reply.status(200).send({
           status: 'success',
@@ -487,7 +513,7 @@ export const registerDisplayTabletRoutes = (
           }
           return; // Tablet is authorized
         }
-        
+
         // User authentication required if not tablet
         if (!request.requester) {
           return reply.status(401).send({
@@ -570,10 +596,10 @@ export const registerDisplayTabletRoutes = (
     async (request, reply) => {
       try {
         const params = householdTabletParamsSchema.parse(request.params);
-        
+
         // Validate the configuration
         const configData = tabletDisplayConfigSchema.parse(request.body);
-        
+
         // Validate screen-specific settings
         for (const screen of configData.screens) {
           if (!validateScreenSettings(screen)) {
@@ -618,7 +644,7 @@ export const registerDisplayTabletRoutes = (
         // 1. x-tablet-session-token (JWT from /authenticate)
         // 2. x-tablet-id + x-tablet-token (raw credentials)
         const params = householdTabletParamsSchema.parse(request.params);
-        
+
         // Try method 1: JWT session token (already set by global middleware)
         if (request.tabletSession) {
           // Validate tablet can only subscribe to its own updates
@@ -628,28 +654,28 @@ export const registerDisplayTabletRoutes = (
               message: 'Tablets can only subscribe to their own config updates.',
             });
           }
-          
+
           if (request.tabletSession.householdId !== params.householdId) {
             return reply.status(403).send({
               status: 'error',
               message: 'Tablet does not belong to this household.',
             });
           }
-          
+
           return; // Authenticated via JWT
         }
-        
+
         // Try method 2: Raw credentials (x-tablet-id + x-tablet-token)
         const tabletId = (request.headers['x-tablet-id'] as string | undefined)?.trim();
         const tabletToken = (request.headers['x-tablet-token'] as string | undefined)?.trim();
-        
+
         if (!tabletId || !tabletToken) {
           return reply.status(401).send({
             status: 'error',
             message: 'Tablet authentication required. Provide x-tablet-id + x-tablet-token or x-tablet-session-token.',
           });
         }
-        
+
         // Validate tabletId matches URL
         if (tabletId !== params.tabletId) {
           return reply.status(403).send({
@@ -657,18 +683,18 @@ export const registerDisplayTabletRoutes = (
             message: 'Tablet ID in headers does not match URL.',
           });
         }
-        
+
         // Authenticate with raw credentials
         try {
           const tabletAuth = await repository.authenticateDisplayTablet(tabletId, tabletToken);
-          
+
           if (!tabletAuth) {
             return reply.status(401).send({
               status: 'error',
               message: 'Invalid tablet credentials or tablet is not active.',
             });
           }
-          
+
           // Validate householdId
           if (tabletAuth.householdId !== params.householdId) {
             return reply.status(403).send({
@@ -676,7 +702,7 @@ export const registerDisplayTabletRoutes = (
               message: 'Tablet does not belong to this household.',
             });
           }
-          
+
           // Set tablet session for use in route handler
           request.tabletSession = {
             tabletId: tabletId,
@@ -684,7 +710,7 @@ export const registerDisplayTabletRoutes = (
             permissions: tabletAuth.permissions,
             isTablet: true,
           };
-          
+
           return; // Authenticated via raw credentials
         } catch (error) {
           fastify.log.error({ error, tabletId }, 'SSE tablet authentication error');

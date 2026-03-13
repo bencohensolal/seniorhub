@@ -373,8 +373,8 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
-      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
-              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
+      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email,
+              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash,
               i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
@@ -414,8 +414,8 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
-      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
-              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
+      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email,
+              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash,
               i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
@@ -448,8 +448,8 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       accepted_at: string | Date | null;
     }>(
-      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email, 
-              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash, 
+      `SELECT i.id, i.household_id, h.name AS household_name, i.inviter_user_id, i.invitee_email,
+              i.invitee_first_name, i.invitee_last_name, i.assigned_role, i.token_hash,
               i.token_expires_at, i.status, i.reactivation_count, i.created_at, i.accepted_at
        FROM household_invitations i
        JOIN households h ON h.id = i.household_id
@@ -1843,7 +1843,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       updated_at: string | Date;
     }>(
-      `SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time, 
+      `SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time,
               status, overrides::text, created_at, updated_at
        FROM appointment_occurrences
        WHERE id = $1 AND household_id = $2
@@ -1867,7 +1867,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_at: string | Date;
       updated_at: string | Date;
     }>(
-      `SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time, 
+      `SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time,
               status, overrides::text, created_at, updated_at
        FROM appointment_occurrences
        WHERE recurring_appointment_id = $1 AND occurrence_date = $2 AND household_id = $3
@@ -1881,12 +1881,12 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
 
   async listOccurrences(appointmentId: string, householdId: string, fromDate?: string, toDate?: string): Promise<AppointmentOccurrence[]> {
     let query = `
-      SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time, 
+      SELECT id, recurring_appointment_id, household_id, occurrence_date, occurrence_time,
              status, overrides::text, created_at, updated_at
       FROM appointment_occurrences
       WHERE recurring_appointment_id = $1 AND household_id = $2
     `;
-    
+
     const params: unknown[] = [appointmentId, householdId];
     let paramIndex = 3;
 
@@ -2039,7 +2039,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       FROM tasks
       WHERE household_id = $1
     `;
-    
+
     const params: unknown[] = [householdId];
     let paramIndex = 2;
 
@@ -2275,7 +2275,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     if (input.status !== undefined) {
       updates.push(`status = $${paramIndex++}`);
       values.push(input.status);
-      
+
       // Auto-set completedAt if status becomes 'completed' and completedAt not explicitly provided
       if (input.status === 'completed' && input.completedAt === undefined) {
         updates.push(`completed_at = $${paramIndex++}`);
@@ -2658,9 +2658,9 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }
 
     const tablet = mapDisplayTablet(row);
-    
+
     // Return tablet with token (omit tokenHash)
-     
+
     const { tokenHash: _, ...tabletWithoutHash } = tablet;
     return {
       ...tabletWithoutHash,
@@ -2778,9 +2778,9 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     }
 
     const tablet = mapDisplayTablet(row);
-    
+
     // Return tablet with token (omit tokenHash)
-     
+
     const { tokenHash: _, ...tabletWithoutHash } = tablet;
     return {
       ...tabletWithoutHash,
@@ -2886,6 +2886,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tablet_id: string;
       household_id: string;
       name: string;
+      display_order: number;
       display_mode: 'slideshow' | 'mosaic' | 'single';
       slideshow_duration: number;
       slideshow_transition: 'fade' | 'slide' | 'none';
@@ -2895,12 +2896,12 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_by: string;
       updated_at: string | Date | null;
     }>(
-      `SELECT id, tablet_id, household_id, name, display_mode, slideshow_duration,
+      `SELECT id, tablet_id, household_id, name, display_order, display_mode, slideshow_duration,
               slideshow_transition, slideshow_order, show_captions,
               created_at, created_by, updated_at
        FROM photo_screens
        WHERE tablet_id = $1 AND household_id = $2
-       ORDER BY created_at ASC`,
+       ORDER BY display_order ASC, created_at ASC`,
       [tabletId, householdId],
     );
 
@@ -2949,6 +2950,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tabletId: row.tablet_id,
       householdId: row.household_id,
       name: row.name,
+      order: row.display_order,
       displayMode: row.display_mode,
       slideshowDuration: row.slideshow_duration,
       slideshowTransition: row.slideshow_transition,
@@ -2967,6 +2969,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tablet_id: string;
       household_id: string;
       name: string;
+      display_order: number;
       display_mode: 'slideshow' | 'mosaic' | 'single';
       slideshow_duration: number;
       slideshow_transition: 'fade' | 'slide' | 'none';
@@ -2976,7 +2979,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       created_by: string;
       updated_at: string | Date | null;
     }>(
-      `SELECT id, tablet_id, household_id, name, display_mode, slideshow_duration,
+      `SELECT id, tablet_id, household_id, name, display_order, display_mode, slideshow_duration,
               slideshow_transition, slideshow_order, show_captions,
               created_at, created_by, updated_at
        FROM photo_screens
@@ -3022,6 +3025,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tabletId: row.tablet_id,
       householdId: row.household_id,
       name: row.name,
+      order: row.display_order,
       displayMode: row.display_mode,
       slideshowDuration: row.slideshow_duration,
       slideshowTransition: row.slideshow_transition,
@@ -3042,12 +3046,14 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     const slideshowTransition = input.slideshowTransition || 'fade';
     const slideshowOrder = input.slideshowOrder || 'sequential';
     const showCaptions = input.showCaptions ?? false;
+    const displayOrder = input.order ?? await this.countPhotoScreens(input.tabletId, input.householdId);
 
     const result = await this.pool.query<{
       id: string;
       tablet_id: string;
       household_id: string;
       name: string;
+      display_order: number;
       display_mode: 'slideshow' | 'mosaic' | 'single';
       slideshow_duration: number;
       slideshow_transition: 'fade' | 'slide' | 'none';
@@ -3058,11 +3064,11 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       updated_at: string | Date | null;
     }>(
       `INSERT INTO photo_screens (
-         id, tablet_id, household_id, name, display_mode, slideshow_duration,
+         id, tablet_id, household_id, name, display_order, display_mode, slideshow_duration,
          slideshow_transition, slideshow_order, show_captions, created_at, created_by
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, tablet_id, household_id, name, display_mode, slideshow_duration,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, tablet_id, household_id, name, display_order, display_mode, slideshow_duration,
                  slideshow_transition, slideshow_order, show_captions,
                  created_at, created_by, updated_at`,
       [
@@ -3070,6 +3076,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
         input.tabletId,
         input.householdId,
         input.name,
+        displayOrder,
         displayMode,
         slideshowDuration,
         slideshowTransition,
@@ -3090,6 +3097,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tabletId: row.tablet_id,
       householdId: row.household_id,
       name: row.name,
+      order: row.display_order,
       displayMode: row.display_mode,
       slideshowDuration: row.slideshow_duration,
       slideshowTransition: row.slideshow_transition,
@@ -3109,6 +3117,10 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     if (input.name !== undefined) {
       updates.push(`name = $${paramIndex++}`);
       values.push(input.name);
+    }
+    if (input.order !== undefined) {
+      updates.push(`display_order = $${paramIndex++}`);
+      values.push(input.order);
     }
     if (input.displayMode !== undefined) {
       updates.push(`display_mode = $${paramIndex++}`);
@@ -3148,6 +3160,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tablet_id: string;
       household_id: string;
       name: string;
+      display_order: number;
       display_mode: 'slideshow' | 'mosaic' | 'single';
       slideshow_duration: number;
       slideshow_transition: 'fade' | 'slide' | 'none';
@@ -3160,7 +3173,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       `UPDATE photo_screens
        SET ${updates.join(', ')}
        WHERE id = $${paramIndex++} AND tablet_id = $${paramIndex++} AND household_id = $${paramIndex++}
-       RETURNING id, tablet_id, household_id, name, display_mode, slideshow_duration,
+       RETURNING id, tablet_id, household_id, name, display_order, display_mode, slideshow_duration,
                  slideshow_transition, slideshow_order, show_captions,
                  created_at, created_by, updated_at`,
       values,
@@ -3176,6 +3189,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
       tabletId: row.tablet_id,
       householdId: row.household_id,
       name: row.name,
+      order: row.display_order,
       displayMode: row.display_mode,
       slideshowDuration: row.slideshow_duration,
       slideshowTransition: row.slideshow_transition,

@@ -8,6 +8,7 @@ import {
 // Photo Screen schemas
 export const createPhotoScreenSchema = z.object({
   name: z.string().min(3).max(MAX_PHOTO_SCREEN_NAME_LENGTH).trim(),
+  order: z.number().int().min(0).optional(),
   displayMode: z.enum(['slideshow', 'mosaic', 'single']).optional(),
   slideshowDuration: z.number().int().refine(val => [3, 5, 10, 15, 30].includes(val), {
     message: 'Slideshow duration must be 3, 5, 10, 15, or 30 seconds',
@@ -19,6 +20,7 @@ export const createPhotoScreenSchema = z.object({
 
 export const updatePhotoScreenSchema = z.object({
   name: z.string().min(3).max(MAX_PHOTO_SCREEN_NAME_LENGTH).trim().optional(),
+  order: z.number().int().min(0).optional(),
   displayMode: z.enum(['slideshow', 'mosaic', 'single']).optional(),
   slideshowDuration: z.number().int().refine(val => [3, 5, 10, 15, 30].includes(val), {
     message: 'Slideshow duration must be 3, 5, 10, 15, or 30 seconds',

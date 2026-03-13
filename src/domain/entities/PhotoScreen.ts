@@ -11,6 +11,7 @@ export interface PhotoScreen {
   tabletId: string;
   householdId: string;
   name: string;
+  order: number; // 0-indexed position in tablet rotation
   displayMode: 'slideshow' | 'mosaic' | 'single';
   slideshowDuration: number; // in seconds (3, 5, 10, 15, 30)
   slideshowTransition: 'fade' | 'slide' | 'none';
@@ -40,6 +41,7 @@ export interface CreatePhotoScreenInput {
   tabletId: string;
   householdId: string;
   name: string;
+  order?: number;
   displayMode?: DisplayMode;
   slideshowDuration?: number;
   slideshowTransition?: SlideshowTransition;
@@ -50,6 +52,7 @@ export interface CreatePhotoScreenInput {
 
 export interface UpdatePhotoScreenInput {
   name?: string;
+  order?: number;
   displayMode?: DisplayMode;
   slideshowDuration?: number;
   slideshowTransition?: SlideshowTransition;

@@ -12,6 +12,7 @@ export class UpdatePhotoScreenUseCase {
     tabletId: string;
     photoScreenId: string;
     name?: string;
+    order?: number;
     displayMode?: 'slideshow' | 'mosaic' | 'single';
     slideshowDuration?: number;
     slideshowTransition?: 'fade' | 'slide' | 'none';
@@ -47,6 +48,7 @@ export class UpdatePhotoScreenUseCase {
     // Update the photo screen - only include defined properties
     const updateInput: UpdatePhotoScreenInput = {};
     if (input.name !== undefined) updateInput.name = input.name;
+    if (input.order !== undefined) updateInput.order = input.order;
     if (input.displayMode !== undefined) updateInput.displayMode = input.displayMode;
     if (input.slideshowDuration !== undefined) updateInput.slideshowDuration = input.slideshowDuration;
     if (input.slideshowTransition !== undefined) updateInput.slideshowTransition = input.slideshowTransition;

@@ -12,6 +12,7 @@ export class CreatePhotoScreenUseCase {
     householdId: string;
     tabletId: string;
     name: string;
+    order?: number;
     displayMode?: 'slideshow' | 'mosaic' | 'single';
     slideshowDuration?: number;
     slideshowTransition?: 'fade' | 'slide' | 'none';
@@ -35,14 +36,14 @@ export class CreatePhotoScreenUseCase {
 
     // Verify tablet exists and belongs to the household
     const tablet = await this.repository.getDisplayTabletById(input.tabletId, input.householdId);
-    
+
     if (!tablet) {
       throw new NotFoundError('Display tablet not found.');
     }
 
     // Check if max photo screens limit is reached
     const existingCount = await this.repository.countPhotoScreens(input.tabletId, input.householdId);
-    
+
     if (existingCount >= MAX_PHOTO_SCREENS_PER_TABLET) {
       throw new MaxPhotoScreensReachedError(
         `This tablet has already reached the limit of ${MAX_PHOTO_SCREENS_PER_TABLET} photo screens.`,
@@ -54,6 +55,7 @@ export class CreatePhotoScreenUseCase {
       tabletId: input.tabletId,
       householdId: input.householdId,
       name: input.name,
+      ...(input.order !== undefined && { order: input.order }),
       createdBy: input.requester.userId,
       ...(input.displayMode !== undefined && { displayMode: input.displayMode }),
       ...(input.slideshowDuration !== undefined && { slideshowDuration: input.slideshowDuration }),

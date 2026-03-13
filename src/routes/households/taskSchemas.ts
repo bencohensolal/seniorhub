@@ -106,7 +106,7 @@ export const createTaskReminderBodySchema = z.object({
     (days) => new Set(days).size === days.length,
     { message: 'Days of week must be unique' }
   ).optional(),
-  triggerBefore: z.number().int().min(1).max(10080).optional(), // Minutes before due time (1 min to 1 week)
+  triggerBefore: z.coerce.number().int().min(1).max(10080).optional(), // Minutes before due time (1 min to 1 week)
   customMessage: z.string().max(500).optional(),
   enabled: z.boolean().optional().default(true),
 }).refine(
@@ -130,7 +130,7 @@ export const updateTaskReminderBodySchema = z.object({
     (days) => new Set(days).size === days.length,
     { message: 'Days of week must be unique' }
   ).nullable().optional(),
-  triggerBefore: z.number().int().min(1).max(10080).nullable().optional(), // Minutes before due time
+  triggerBefore: z.coerce.number().int().min(1).max(10080).nullable().optional(), // Minutes before due time
   customMessage: z.string().max(500).nullable().optional(),
   enabled: z.boolean().optional(),
 });

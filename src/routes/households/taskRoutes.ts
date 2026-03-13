@@ -72,9 +72,9 @@ export function registerTaskRoutes(
           properties: {
             status: { type: 'string', enum: ['pending', 'completed', 'cancelled'] },
             seniorId: { type: 'string' },
-            category: { 
-              type: 'string', 
-              enum: ['hydration', 'meals', 'medication', 'hygiene', 'mobility', 'social', 'medical', 'household', 'other'] 
+            category: {
+              type: 'string',
+              enum: ['hydration', 'meals', 'medication', 'hygiene', 'mobility', 'social', 'medical', 'household', 'other']
             },
             fromDate: { type: 'string' },
             toDate: { type: 'string' },
@@ -155,9 +155,9 @@ export function registerTaskRoutes(
             title: { type: 'string', minLength: 1, maxLength: 255 },
             seniorId: { type: 'string' },
             description: { type: 'string', maxLength: 1000 },
-            category: { 
-              type: 'string', 
-              enum: ['hydration', 'nutrition', 'exercise', 'social', 'household', 'wellbeing', 'other'] 
+            category: {
+              type: 'string',
+              enum: ['hydration', 'nutrition', 'exercise', 'social', 'household', 'wellbeing', 'other']
             },
             priority: { type: 'string', enum: ['low', 'normal', 'high'] },
             dueDate: { type: 'string' },
@@ -247,9 +247,9 @@ export function registerTaskRoutes(
           properties: {
             title: { type: 'string', minLength: 1, maxLength: 255 },
             description: { type: ['string', 'null'], maxLength: 1000 },
-            category: { 
-              type: 'string', 
-              enum: ['hydration', 'nutrition', 'exercise', 'social', 'household', 'wellbeing', 'other'] 
+            category: {
+              type: 'string',
+              enum: ['hydration', 'nutrition', 'exercise', 'social', 'household', 'wellbeing', 'other']
             },
             priority: { type: 'string', enum: ['low', 'normal', 'high'] },
             status: { type: 'string', enum: ['pending', 'completed', 'cancelled'] },
@@ -382,7 +382,7 @@ export function registerTaskRoutes(
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
         };
-        
+
         if (body.completedAt) inputData.completedAt = body.completedAt;
 
         const task = await useCases.completeTaskUseCase.execute(inputData);
@@ -490,6 +490,12 @@ export function registerTaskRoutes(
       const bodyResult = createTaskReminderBodySchema.safeParse(request.body);
 
       if (!paramsResult.success || !bodyResult.success) {
+        console.error('[taskRoutes] Invalid create task reminder payload', {
+          params: request.params,
+          body: request.body,
+          paramsIssues: !paramsResult.success ? paramsResult.error.issues : [],
+          bodyIssues: !bodyResult.success ? bodyResult.error.issues : [],
+        });
         return reply.status(400).send({
           status: 'error',
           message: 'Invalid request payload.',

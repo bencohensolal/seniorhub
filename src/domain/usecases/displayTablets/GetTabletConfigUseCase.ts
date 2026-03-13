@@ -9,7 +9,7 @@ interface GetTabletConfigInput {
 
 /**
  * Use case: Get complete tablet configuration including photo screens
- * 
+ *
  * This retrieves the tablet's base configuration and enriches it with
  * photo gallery screens created for this tablet.
  */
@@ -21,7 +21,7 @@ export class GetTabletConfigUseCase {
 
     // 1. Get the tablet with its base config
     const tablet = await this.repository.getDisplayTabletById(tabletId, householdId);
-    
+
     if (!tablet) {
       throw new NotFoundError('Display tablet not found.');
     }
@@ -44,11 +44,21 @@ export class GetTabletConfigUseCase {
         };
       }
 
+      const configuredPhotoScreens = new Map(
+        config.screens
+          .filter((screen) => screen.type === 'photoGallery')
+          .map((screen) => {
+            const settings = screen.settings as PhotoGalleryScreenSettings | undefined;
+            return [settings?.id, screen] as const;
+          })
+          .filter(([id]) => Boolean(id)),
+      );
+
       // Remove any existing photoGallery screens from config (we'll rebuild them)
       const nonPhotoScreens = config.screens.filter(s => s.type !== 'photoGallery');
 
       // Build photoGallery screen configs from database photo screens
-      const photoGalleryScreens: ScreenConfig[] = photoScreens.map((photoScreen, index) => {
+      const photoGalleryScreens: ScreenConfig[] = photoScreens.map((photoScreen) => {
         const settings: PhotoGalleryScreenSettings = {
           id: photoScreen.id,
           name: photoScreen.name,
@@ -66,16 +76,12 @@ export class GetTabletConfigUseCase {
           showCaptions: photoScreen.showCaptions,
         };
 
-        // Determine the order - photo screens should come after other screens
-        // We'll assign orders starting after the highest existing order
-        const maxExistingOrder = nonPhotoScreens.length > 0
-          ? Math.max(...nonPhotoScreens.map(s => s.order))
-          : -1;
+        const configuredScreen = configuredPhotoScreens.get(photoScreen.id);
 
         return {
           type: 'photoGallery' as const,
-          enabled: true, // Photo screens are always enabled when they exist
-          order: maxExistingOrder + 1 + index,
+          enabled: configuredScreen?.enabled ?? true,
+          order: configuredScreen?.order ?? photoScreen.order,
           settings,
         };
       });

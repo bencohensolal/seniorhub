@@ -47,13 +47,71 @@ import type { TabletDisplayConfig } from '../../domain/entities/TabletDisplayCon
 import type { CreatePhotoInput, CreatePhotoScreenInput, Photo, PhotoScreen, PhotoScreenWithPhotos, UpdatePhotoInput, UpdatePhotoScreenInput } from '../../domain/entities/PhotoScreen.js';
 import type { PrivacySettings, UpdatePrivacySettingsInput } from '../../domain/entities/PrivacySettings.js';
 import type { UserProfile } from '../../domain/entities/UserProfile.js';
+import type {
+  HouseholdSettings,
+  HouseholdMemberPermissions,
+  HouseholdNotificationSettings,
+  UpdateHouseholdSettingsInput,
+} from '../../domain/entities/HouseholdSettings.js';
+import {
+  DEFAULT_HOUSEHOLD_NOTIFICATION_SETTINGS,
+  getDefaultHouseholdMemberPermissions,
+} from '../../domain/entities/HouseholdSettings.js';
 import { generateDisplayTabletToken, hashDisplayTabletToken } from '../../domain/security/displayTabletToken.js';
 
 const INVITATION_TTL_HOURS = 72;
 const DISPLAY_TABLET_SETUP_TTL_HOURS = 72;
 
 export class PostgresHouseholdRepository implements HouseholdRepository {
+  private static ensureHouseholdSettingsTablePromise: Promise<void> | null = null;
+
   constructor(private readonly pool: Pool) {}
+
+  private async ensureHouseholdSettingsTable(): Promise<void> {
+    if (!PostgresHouseholdRepository.ensureHouseholdSettingsTablePromise) {
+      PostgresHouseholdRepository.ensureHouseholdSettingsTablePromise = this.pool
+        .query(`
+          CREATE TABLE IF NOT EXISTS household_settings (
+            household_id UUID PRIMARY KEY REFERENCES households(id) ON DELETE CASCADE,
+            member_permissions JSONB NOT NULL DEFAULT '{}'::jsonb,
+            notifications JSONB NOT NULL DEFAULT '{"enabled": true, "memberUpdates": true, "invitations": true}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `)
+        .then(() => undefined);
+    }
+
+    await PostgresHouseholdRepository.ensureHouseholdSettingsTablePromise;
+  }
+
+  private normalizeHouseholdSettings(
+    householdId: string,
+    members: Member[],
+    stored: {
+      memberPermissions?: Record<string, Partial<HouseholdMemberPermissions>>;
+      notifications?: Partial<HouseholdNotificationSettings>;
+      createdAt?: string;
+      updatedAt?: string;
+    },
+  ): HouseholdSettings {
+    return {
+      householdId,
+      memberPermissions: members.reduce<Record<string, HouseholdMemberPermissions>>((acc, member) => {
+        acc[member.id] = {
+          ...getDefaultHouseholdMemberPermissions(member.role),
+          ...(stored.memberPermissions?.[member.id] ?? {}),
+        };
+        return acc;
+      }, {}),
+      notifications: {
+        ...DEFAULT_HOUSEHOLD_NOTIFICATION_SETTINGS,
+        ...(stored.notifications ?? {}),
+      },
+      createdAt: stored.createdAt ?? nowIso(),
+      updatedAt: stored.updatedAt ?? nowIso(),
+    };
+  }
 
   async getOverviewById(householdId: string): Promise<HouseholdOverview | null> {
     const result = await this.pool.query<{
@@ -206,6 +264,121 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     return result.rows.map(mapMember);
   }
 
+  async getHouseholdSettings(householdId: string): Promise<HouseholdSettings> {
+    await this.ensureHouseholdSettingsTable();
+
+    const members = await this.listHouseholdMembers(householdId);
+    const result = await this.pool.query<{
+      household_id: string;
+      member_permissions: Record<string, Partial<HouseholdMemberPermissions>> | null;
+      notifications: Partial<HouseholdNotificationSettings> | null;
+      created_at: string | Date;
+      updated_at: string | Date;
+    }>(
+      `SELECT household_id, member_permissions, notifications, created_at, updated_at
+       FROM household_settings
+       WHERE household_id = $1
+       LIMIT 1`,
+      [householdId],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      const defaults = this.normalizeHouseholdSettings(householdId, members, {});
+      const inserted = await this.pool.query<{
+        household_id: string;
+        member_permissions: Record<string, Partial<HouseholdMemberPermissions>>;
+        notifications: HouseholdNotificationSettings;
+        created_at: string | Date;
+        updated_at: string | Date;
+      }>(
+        `INSERT INTO household_settings (household_id, member_permissions, notifications, created_at, updated_at)
+         VALUES ($1, $2::jsonb, $3::jsonb, $4, $4)
+         ON CONFLICT (household_id) DO UPDATE
+         SET member_permissions = household_settings.member_permissions
+         RETURNING household_id, member_permissions, notifications, created_at, updated_at`,
+        [
+          householdId,
+          JSON.stringify(defaults.memberPermissions),
+          JSON.stringify(defaults.notifications),
+          defaults.createdAt,
+        ],
+      );
+
+      const insertedRow = inserted.rows[0]!;
+      return this.normalizeHouseholdSettings(householdId, members, {
+        memberPermissions: insertedRow.member_permissions,
+        notifications: insertedRow.notifications,
+        createdAt: toIso(insertedRow.created_at),
+        updatedAt: toIso(insertedRow.updated_at),
+      });
+    }
+
+    const normalized = this.normalizeHouseholdSettings(householdId, members, {
+      memberPermissions: row.member_permissions ?? {},
+      notifications: row.notifications ?? {},
+      createdAt: toIso(row.created_at),
+      updatedAt: toIso(row.updated_at),
+    });
+
+    // Keep storage aligned with current members/defaults.
+    await this.pool.query(
+      `UPDATE household_settings
+       SET member_permissions = $2::jsonb,
+           notifications = $3::jsonb,
+           updated_at = $4
+       WHERE household_id = $1`,
+      [
+        householdId,
+        JSON.stringify(normalized.memberPermissions),
+        JSON.stringify(normalized.notifications),
+        normalized.updatedAt,
+      ],
+    );
+
+    return normalized;
+  }
+
+  async updateHouseholdSettings(householdId: string, input: UpdateHouseholdSettingsInput): Promise<HouseholdSettings> {
+    await this.ensureHouseholdSettingsTable();
+
+    const current = await this.getHouseholdSettings(householdId);
+    const updatedAt = nowIso();
+    const next: HouseholdSettings = {
+      ...current,
+      memberPermissions: Object.entries(current.memberPermissions).reduce<Record<string, HouseholdMemberPermissions>>((acc, [memberId, permissions]) => {
+        acc[memberId] = {
+          ...permissions,
+          ...(input.memberPermissions?.[memberId] ?? {}),
+        };
+        return acc;
+      }, {}),
+      notifications: {
+        ...current.notifications,
+        ...(input.notifications ?? {}),
+      },
+      updatedAt,
+    };
+
+    await this.pool.query(
+      `INSERT INTO household_settings (household_id, member_permissions, notifications, created_at, updated_at)
+       VALUES ($1, $2::jsonb, $3::jsonb, $4, $5)
+       ON CONFLICT (household_id) DO UPDATE
+       SET member_permissions = EXCLUDED.member_permissions,
+           notifications = EXCLUDED.notifications,
+           updated_at = EXCLUDED.updated_at`,
+      [
+        householdId,
+        JSON.stringify(next.memberPermissions),
+        JSON.stringify(next.notifications),
+        current.createdAt,
+        updatedAt,
+      ],
+    );
+
+    return next;
+  }
+
   async createHousehold(name: string, requester: AuthenticatedRequester): Promise<Household> {
     const client = await this.pool.connect();
     try {
@@ -251,6 +424,37 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
     } finally {
       client.release();
     }
+  }
+
+  async updateHouseholdName(householdId: string, name: string): Promise<Household> {
+    const updatedAt = nowIso();
+    const result = await this.pool.query<{
+      id: string;
+      name: string;
+      created_by_user_id: string;
+      created_at: string | Date;
+      updated_at: string | Date;
+    }>(
+      `UPDATE households
+       SET name = $2,
+           updated_at = $3
+       WHERE id = $1
+       RETURNING id, name, created_by_user_id, created_at, updated_at`,
+      [householdId, name.trim(), updatedAt],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundError('Household not found.');
+    }
+
+    return {
+      id: row.id,
+      name: row.name,
+      createdByUserId: row.created_by_user_id,
+      createdAt: toIso(row.created_at),
+      updatedAt: toIso(row.updated_at),
+    };
   }
 
   async createBulkInvitations(input: {

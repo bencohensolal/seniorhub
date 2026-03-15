@@ -15,6 +15,11 @@ import type { Medication, CreateMedicationInput, UpdateMedicationInput } from '.
 import type { PrivacySettings } from '../../domain/entities/PrivacySettings.js';
 import type { TabletDisplayConfig } from '../../domain/entities/TabletDisplayConfig.js';
 import type { UserProfile } from '../../domain/entities/UserProfile.js';
+import type { HouseholdSettings, UpdateHouseholdSettingsInput } from '../../domain/entities/HouseholdSettings.js';
+import {
+  DEFAULT_HOUSEHOLD_NOTIFICATION_SETTINGS,
+  getDefaultHouseholdMemberPermissions,
+} from '../../domain/entities/HouseholdSettings.js';
 import { ConflictError, ForbiddenError, NotFoundError } from '../../domain/errors/index.js';
 import { nowIso, addHours, hashToken, normalizeEmail, normalizeName } from './postgres/helpers.js';
 
@@ -66,6 +71,7 @@ const members: Member[] = [
 
 const invitations: HouseholdInvitation[] = [];
 const auditEvents: AuditEvent[] = [];
+const householdSettingsStore = new Map<string, HouseholdSettings>();
 
 export const forceExpireInvitationForTests = (invitationId: string): void => {
   const invitation = invitations.find((item) => item.id === invitationId);
@@ -77,6 +83,32 @@ export const forceExpireInvitationForTests = (invitationId: string): void => {
 };
 
 export class InMemoryHouseholdRepository implements HouseholdRepository {
+  private buildHouseholdSettings(householdId: string, existing?: HouseholdSettings): HouseholdSettings {
+    const timestamp = nowIso();
+    const householdMembers = members.filter(
+      (member) => member.householdId === householdId && member.status === 'active',
+    );
+
+    const memberPermissions = householdMembers.reduce<HouseholdSettings['memberPermissions']>((acc, member) => {
+      acc[member.id] = {
+        ...getDefaultHouseholdMemberPermissions(member.role),
+        ...(existing?.memberPermissions[member.id] ?? {}),
+      };
+      return acc;
+    }, {});
+
+    return {
+      householdId,
+      memberPermissions,
+      notifications: {
+        ...DEFAULT_HOUSEHOLD_NOTIFICATION_SETTINGS,
+        ...(existing?.notifications ?? {}),
+      },
+      createdAt: existing?.createdAt ?? timestamp,
+      updatedAt: existing?.updatedAt ?? timestamp,
+    };
+  }
+
   async getOverviewById(householdId: string): Promise<HouseholdOverview | null> {
     const household = households.find((item) => item.id === householdId);
     if (!household) {
@@ -178,6 +210,11 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
       joinedAt: createdAt,
       createdAt,
     });
+
+    householdSettingsStore.set(
+      household.id,
+      this.buildHouseholdSettings(household.id),
+    );
 
     return household;
   }
@@ -917,5 +954,47 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
 
   async getBulkPrivacySettings(_userIds: string[]): Promise<Map<string, PrivacySettings>> {
     return new Map();
+  }
+
+  async getHouseholdSettings(householdId: string): Promise<HouseholdSettings> {
+    const existing = householdSettingsStore.get(householdId);
+    const next = this.buildHouseholdSettings(householdId, existing);
+    householdSettingsStore.set(householdId, next);
+    return next;
+  }
+
+  async updateHouseholdSettings(householdId: string, input: UpdateHouseholdSettingsInput): Promise<HouseholdSettings> {
+    const current = await this.getHouseholdSettings(householdId);
+    const updatedAt = nowIso();
+
+    const next: HouseholdSettings = {
+      ...current,
+      memberPermissions: Object.entries(current.memberPermissions).reduce<HouseholdSettings['memberPermissions']>((acc, [memberId, permissions]) => {
+        acc[memberId] = {
+          ...permissions,
+          ...(input.memberPermissions?.[memberId] ?? {}),
+        };
+        return acc;
+      }, {}),
+      notifications: {
+        ...current.notifications,
+        ...(input.notifications ?? {}),
+      },
+      updatedAt,
+    };
+
+    householdSettingsStore.set(householdId, next);
+    return next;
+  }
+
+  async updateHouseholdName(householdId: string, name: string): Promise<Household> {
+    const household = households.find((item) => item.id === householdId);
+    if (!household) {
+      throw new NotFoundError('Household not found.');
+    }
+
+    household.name = name.trim();
+    household.updatedAt = nowIso();
+    return household;
   }
 }

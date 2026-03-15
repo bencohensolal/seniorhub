@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import type { CreateHouseholdUseCase } from '../../domain/usecases/households/CreateHouseholdUseCase.js';
 import type { GetHouseholdOverviewUseCase } from '../../domain/usecases/households/GetHouseholdOverviewUseCase.js';
 import type { LeaveHouseholdUseCase } from '../../domain/usecases/households/LeaveHouseholdUseCase.js';
@@ -6,14 +7,40 @@ import type { ListHouseholdMembersUseCase } from '../../domain/usecases/househol
 import type { ListUserHouseholdsUseCase } from '../../domain/usecases/households/ListUserHouseholdsUseCase.js';
 import type { RemoveHouseholdMemberUseCase } from '../../domain/usecases/households/RemoveHouseholdMemberUseCase.js';
 import type { UpdateHouseholdMemberRoleUseCase } from '../../domain/usecases/households/UpdateHouseholdMemberRoleUseCase.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import { createHouseholdBodySchema, paramsSchema, errorResponseSchema } from './schemas.js';
 import { handleDomainError } from '../errorHandler.js';
-import { getRequesterContext } from './utils.js';
-import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
+import { ensureHouseholdPermission, getRequesterContext } from './utils.js';
 import { buildHouseholdPrivacyContext, filterMembersByPrivacy } from '../../domain/services/privacyFilter.js';
+import { requireWritePermission } from '../../plugins/authContext.js';
+import type {
+  HouseholdMemberPermissions,
+  HouseholdNotificationSettings,
+  UpdateHouseholdSettingsInput,
+} from '../../domain/entities/HouseholdSettings.js';
+
+const householdNotificationsSchema = z.object({
+  enabled: z.boolean().optional(),
+  memberUpdates: z.boolean().optional(),
+  invitations: z.boolean().optional(),
+});
+
+const memberPermissionsSchema = z.object({
+  manageMedications: z.boolean().optional(),
+  manageAppointments: z.boolean().optional(),
+  manageTasks: z.boolean().optional(),
+  manageMembers: z.boolean().optional(),
+  viewSensitiveInfo: z.boolean().optional(),
+});
+
+const updateHouseholdSettingsBodySchema = z.object({
+  notifications: householdNotificationsSchema.optional(),
+  memberPermissions: z.record(z.string(), memberPermissionsSchema).optional(),
+});
 
 export const registerHouseholdRoutes = (
   fastify: FastifyInstance,
+  repository: HouseholdRepository,
   useCases: {
     createHouseholdUseCase: CreateHouseholdUseCase;
     getHouseholdOverviewUseCase: GetHouseholdOverviewUseCase;
@@ -23,7 +50,6 @@ export const registerHouseholdRoutes = (
     updateHouseholdMemberRoleUseCase: UpdateHouseholdMemberRoleUseCase;
     leaveHouseholdUseCase: LeaveHouseholdUseCase;
   },
-  repository: HouseholdRepository,
 ) => {
   // POST /v1/households - Create a new household
   fastify.post(
@@ -190,6 +216,77 @@ export const registerHouseholdRoutes = (
     },
   );
 
+  // PATCH /v1/households/:householdId - Update household
+  fastify.patch(
+    '/v1/households/:householdId',
+    {
+      preHandler: requireWritePermission,
+      schema: {
+        tags: ['Households'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        body: {
+          type: 'object',
+          properties: { name: { type: 'string', minLength: 2, maxLength: 120 } },
+          required: ['name'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  name: { type: 'string' },
+                  createdByUserId: { type: 'string' },
+                  createdAt: { type: 'string' },
+                  updatedAt: { type: 'string' },
+                },
+                required: ['id', 'name', 'createdByUserId', 'createdAt', 'updatedAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      const bodyResult = createHouseholdBodySchema.safeParse(request.body);
+
+      if (!paramsResult.success || !bodyResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
+        const household = await repository.updateHouseholdName(
+          paramsResult.data.householdId,
+          bodyResult.data.name,
+        );
+
+        return reply.status(200).send({
+          status: 'success',
+          data: household,
+        });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
   // GET /v1/households/:householdId/overview - Get household overview
   fastify.get(
     '/v1/households/:householdId/overview',
@@ -254,6 +351,165 @@ export const registerHouseholdRoutes = (
           status: 'success',
           data: overview,
         });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // GET /v1/households/:householdId/settings
+  fastify.get(
+    '/v1/households/:householdId/settings',
+    {
+      schema: {
+        tags: ['Households'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  householdId: { type: 'string' },
+                  memberPermissions: { type: 'object', additionalProperties: true },
+                  notifications: {
+                    type: 'object',
+                    properties: {
+                      enabled: { type: 'boolean' },
+                      memberUpdates: { type: 'boolean' },
+                      invitations: { type: 'boolean' },
+                    },
+                    required: ['enabled', 'memberUpdates', 'invitations'],
+                  },
+                  createdAt: { type: 'string' },
+                  updatedAt: { type: 'string' },
+                },
+                required: ['householdId', 'memberPermissions', 'notifications', 'createdAt', 'updatedAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      try {
+        const requester = request.requester;
+        if (!requester) {
+          return reply.status(401).send({ status: 'error', message: 'Authentication required.' });
+        }
+        const member = await repository.findActiveMemberByUserInHousehold(requester.userId, paramsResult.data.householdId);
+        if (!member) {
+          return reply.status(403).send({ status: 'error', message: 'Access denied to this household.' });
+        }
+
+        const settings = await repository.getHouseholdSettings(paramsResult.data.householdId);
+        return reply.status(200).send({ status: 'success', data: settings });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // PUT /v1/households/:householdId/settings
+  fastify.put(
+    '/v1/households/:householdId/settings',
+    {
+      preHandler: requireWritePermission,
+      schema: {
+        tags: ['Households'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        body: {
+          type: 'object',
+          properties: {
+            notifications: {
+              type: 'object',
+              properties: {
+                enabled: { type: 'boolean' },
+                memberUpdates: { type: 'boolean' },
+                invitations: { type: 'boolean' },
+              },
+            },
+            memberPermissions: { type: 'object', additionalProperties: true },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: {
+                type: 'object',
+                properties: {
+                  householdId: { type: 'string' },
+                  memberPermissions: { type: 'object', additionalProperties: true },
+                  notifications: {
+                    type: 'object',
+                    properties: {
+                      enabled: { type: 'boolean' },
+                      memberUpdates: { type: 'boolean' },
+                      invitations: { type: 'boolean' },
+                    },
+                    required: ['enabled', 'memberUpdates', 'invitations'],
+                  },
+                  createdAt: { type: 'string' },
+                  updatedAt: { type: 'string' },
+                },
+                required: ['householdId', 'memberPermissions', 'notifications', 'createdAt', 'updatedAt'],
+              },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      const bodyResult = updateHouseholdSettingsBodySchema.safeParse(request.body);
+
+      if (!paramsResult.success || !bodyResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
+        const payload: UpdateHouseholdSettingsInput = {
+          ...(bodyResult.data.notifications && {
+            notifications: bodyResult.data.notifications as Partial<HouseholdNotificationSettings>,
+          }),
+          ...(bodyResult.data.memberPermissions && {
+            memberPermissions: bodyResult.data.memberPermissions as Record<string, Partial<HouseholdMemberPermissions>>,
+          }),
+        };
+        const settings = await repository.updateHouseholdSettings(paramsResult.data.householdId, payload);
+        return reply.status(200).send({ status: 'success', data: settings });
       } catch (error) {
         return handleDomainError(error, reply);
       }
@@ -365,6 +621,7 @@ export const registerHouseholdRoutes = (
   fastify.delete(
     '/v1/households/:householdId/members/:memberId',
     {
+      preHandler: requireWritePermission,
       schema: {
         tags: ['Households'],
         params: {
@@ -395,6 +652,7 @@ export const registerHouseholdRoutes = (
       const params = request.params as { householdId: string; memberId: string };
 
       try {
+        await ensureHouseholdPermission(request, repository, params.householdId, 'manageMembers');
         await useCases.removeHouseholdMemberUseCase.execute({
           householdId: params.householdId,
           memberId: params.memberId,
@@ -415,6 +673,7 @@ export const registerHouseholdRoutes = (
   fastify.patch(
     '/v1/households/:householdId/members/:memberId',
     {
+      preHandler: requireWritePermission,
       schema: {
         tags: ['Households'],
         params: {
@@ -466,6 +725,7 @@ export const registerHouseholdRoutes = (
       const body = request.body as { role: 'senior' | 'caregiver' };
 
       try {
+        await ensureHouseholdPermission(request, repository, params.householdId, 'manageMembers');
         const updatedMember = await useCases.updateHouseholdMemberRoleUseCase.execute({
           householdId: params.householdId,
           memberId: params.memberId,

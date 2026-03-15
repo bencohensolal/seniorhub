@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { registerAuthContext } from '../../plugins/authContext.js';
 import { registerMedicationRoutes } from './medicationRoutes.js';
 
-type MedicationRouteUseCases = Parameters<typeof registerMedicationRoutes>[1];
-type MedicationRouteRepository = Parameters<typeof registerMedicationRoutes>[2];
+type MedicationRouteRepository = Parameters<typeof registerMedicationRoutes>[1];
+type MedicationRouteUseCases = Parameters<typeof registerMedicationRoutes>[2];
 
 const buildUseCases = (overrides: Partial<MedicationRouteUseCases>): MedicationRouteUseCases => ({
   listHouseholdMedicationsUseCase: {
@@ -27,6 +27,37 @@ const buildUseCases = (overrides: Partial<MedicationRouteUseCases>): MedicationR
 });
 
 const repositoryStub: MedicationRouteRepository = {
+  findActiveMemberByUserInHousehold: async () => ({
+    id: 'member-1',
+    householdId: '3617e173-d359-492b-94b7-4c32622e7526',
+    userId: 'user-2',
+    email: 'ben@example.com',
+    firstName: 'Ben',
+    lastName: 'Martin',
+    role: 'caregiver',
+    status: 'active',
+    joinedAt: '2026-03-12T20:00:00.000Z',
+    createdAt: '2026-03-12T20:00:00.000Z',
+  }),
+  getHouseholdSettings: async () => ({
+    householdId: '3617e173-d359-492b-94b7-4c32622e7526',
+    memberPermissions: {
+      'member-1': {
+        manageMedications: true,
+        manageAppointments: true,
+        manageTasks: true,
+        manageMembers: true,
+        viewSensitiveInfo: true,
+      },
+    },
+    notifications: {
+      enabled: true,
+      memberUpdates: true,
+      invitations: true,
+    },
+    createdAt: '2026-03-12T20:00:00.000Z',
+    updatedAt: '2026-03-12T20:00:00.000Z',
+  }),
   getUserPrivacySettings: async () => ({
     id: 'privacy-1',
     userId: 'user-2',
@@ -59,7 +90,7 @@ describe('registerMedicationRoutes', () => {
     const app = Fastify();
     registerAuthContext(app);
 
-    registerMedicationRoutes(app, buildUseCases({
+    registerMedicationRoutes(app, repositoryStub, buildUseCases({
       listHouseholdMedicationsUseCase: {
         execute: async () => [
           {
@@ -91,7 +122,7 @@ describe('registerMedicationRoutes', () => {
           },
         ],
       } as unknown as MedicationRouteUseCases['listHouseholdMedicationsUseCase'],
-    }), repositoryStub);
+    }));
 
     const response = await app.inject({
       method: 'GET',
@@ -123,7 +154,7 @@ describe('registerMedicationRoutes', () => {
     const app = Fastify();
     registerAuthContext(app);
 
-    registerMedicationRoutes(app, buildUseCases({
+    registerMedicationRoutes(app, repositoryStub, buildUseCases({
       createMedicationUseCase: {
         execute: async () => ({
           id: 'medication-123',
@@ -142,7 +173,7 @@ describe('registerMedicationRoutes', () => {
           updatedAt: '2026-03-12T20:00:00.000Z',
         }),
       } as unknown as MedicationRouteUseCases['createMedicationUseCase'],
-    }), repositoryStub);
+    }));
 
     const response = await app.inject({
       method: 'POST',

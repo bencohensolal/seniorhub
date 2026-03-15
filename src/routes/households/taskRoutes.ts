@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { z } from 'zod';
 import type { CompleteTaskInput, CreateTaskInput, TaskCategory, TaskRecurrence, TaskStatus, UpdateTaskInput } from '../../domain/entities/Task.js';
 import type { CreateTaskReminderInput, UpdateTaskReminderInput } from '../../domain/entities/TaskReminder.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import type { ListHouseholdTasksUseCase } from '../../domain/usecases/tasks/ListHouseholdTasksUseCase.js';
 import type { CreateTaskUseCase } from '../../domain/usecases/tasks/CreateTaskUseCase.js';
 import type { UpdateTaskUseCase } from '../../domain/usecases/tasks/UpdateTaskUseCase.js';
@@ -22,9 +23,8 @@ import {
   updateTaskReminderBodySchema,
 } from './taskSchemas.js';
 import { handleDomainError } from '../errorHandler.js';
-import { getRequesterContext, verifyTabletHouseholdAccess } from './utils.js';
+import { ensureHouseholdPermission, getRequesterContext, verifyTabletHouseholdAccess } from './utils.js';
 import { requireWritePermission } from '../../plugins/authContext.js';
-import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import {
   anonymizeTasksByPrivacy,
   assertRequesterCanShareActivityHistory,
@@ -33,6 +33,7 @@ import {
 
 export function registerTaskRoutes(
   fastify: FastifyInstance,
+  repository: HouseholdRepository,
   useCases: {
     listHouseholdTasksUseCase: ListHouseholdTasksUseCase;
     createTaskUseCase: CreateTaskUseCase;
@@ -43,7 +44,6 @@ export function registerTaskRoutes(
     updateTaskReminderUseCase: UpdateTaskReminderUseCase;
     deleteTaskReminderUseCase: DeleteTaskReminderUseCase;
   },
-  repository: HouseholdRepository,
 ): void {
   type CreateTaskRouteInput = Parameters<CreateTaskUseCase['execute']>[0];
   type TaskRecurrenceInput = z.infer<typeof createTaskBodySchema>['recurrence'];
@@ -207,6 +207,7 @@ export function registerTaskRoutes(
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         const body = bodyResult.data;
         const inputData: CreateTaskRouteInput = {
           householdId: paramsResult.data.householdId,
@@ -304,7 +305,7 @@ export function registerTaskRoutes(
         if (bodyResult.data.status === 'completed') {
           await assertRequesterCanShareActivityHistory(repository, request.requester!.userId);
         }
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         const updateData: UpdateTaskInput = {};
         const body = bodyResult.data;
 
@@ -390,7 +391,7 @@ export function registerTaskRoutes(
 
       try {
         await assertRequesterCanShareActivityHistory(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         const body = bodyResult.data;
         const inputData: CompleteTaskInput & {
           taskId: string;
@@ -452,6 +453,7 @@ export function registerTaskRoutes(
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         await useCases.deleteTaskUseCase.execute({
           taskId: paramsResult.data.taskId,
           householdId: paramsResult.data.householdId,
@@ -516,6 +518,7 @@ export function registerTaskRoutes(
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         const body = bodyResult.data;
         const inputData: CreateTaskReminderInput & {
           householdId: string;
@@ -597,6 +600,7 @@ export function registerTaskRoutes(
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         const updateData: UpdateTaskReminderInput = {};
         const body = bodyResult.data;
 
@@ -661,6 +665,7 @@ export function registerTaskRoutes(
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageTasks');
         await useCases.deleteTaskReminderUseCase.execute({
           reminderId: paramsResult.data.reminderId,
           taskId: paramsResult.data.taskId,

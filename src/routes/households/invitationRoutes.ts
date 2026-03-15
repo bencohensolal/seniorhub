@@ -20,7 +20,7 @@ import {
   cancelInvitationParamsSchema,
   errorResponseSchema,
 } from './schemas.js';
-import { checkInviteRateLimit, maskEmail, sanitizeInvitation } from './utils.js';
+import { checkInviteRateLimit, ensureHouseholdPermission, maskEmail, sanitizeInvitation } from './utils.js';
 import { handleDomainError } from '../errorHandler.js';
 import { getRequesterContext } from './utils.js';
 
@@ -29,7 +29,7 @@ import { getRequesterContext } from './utils.js';
  */
 const isMobileDevice = (userAgent: string | undefined): boolean => {
   if (!userAgent) return false;
-  
+
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   return mobileRegex.test(userAgent);
 };
@@ -93,9 +93,9 @@ export const registerInvitationRoutes = (
     async (request, reply) => {
       const queryResult = resolveQuerySchema.safeParse(request.query);
       if (!queryResult.success) {
-        return reply.status(400).send({ 
-          status: 'error', 
-          message: 'Token manquant ou invalide.' 
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Token manquant ou invalide.'
         });
       }
 
@@ -129,9 +129,9 @@ export const registerInvitationRoutes = (
           token: token.substring(0, 8) + '...',
         });
 
-        return reply.status(404).send({ 
-          status: 'error', 
-          message: 'Invitation introuvable ou expirée.' 
+        return reply.status(404).send({
+          status: 'error',
+          message: 'Invitation introuvable ou expirée.'
         });
       }
     },
@@ -243,6 +243,7 @@ export const registerInvitationRoutes = (
           requesterUserId: request.requester!.userId,
           allowedRoles: ['caregiver'],
         });
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
 
         const result = await useCases.createBulkInvitationsUseCase.execute({
           householdId: paramsResult.data.householdId,
@@ -636,6 +637,8 @@ export const registerInvitationRoutes = (
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
+
         const result = await useCases.resendInvitationUseCase.execute({
           householdId: paramsResult.data.householdId,
           invitationId: paramsResult.data.invitationId,
@@ -738,6 +741,8 @@ export const registerInvitationRoutes = (
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
+
         const result = await useCases.reactivateInvitationUseCase.execute({
           householdId: paramsResult.data.householdId,
           invitationId: paramsResult.data.invitationId,
@@ -827,6 +832,8 @@ export const registerInvitationRoutes = (
       }
 
       try {
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMembers');
+
         await useCases.cancelInvitationUseCase.execute({
           householdId: paramsResult.data.householdId,
           invitationId: paramsResult.data.invitationId,

@@ -15,6 +15,7 @@ import type { TabletDisplayConfig } from '../entities/TabletDisplayConfig.js';
 import type { PhotoScreen, PhotoScreenWithPhotos, Photo, CreatePhotoScreenInput, UpdatePhotoScreenInput, CreatePhotoInput, UpdatePhotoInput } from '../entities/PhotoScreen.js';
 import type { PrivacySettings, UpdatePrivacySettingsInput } from '../entities/PrivacySettings.js';
 import type { UserProfile, UpdateUserProfileInput } from '../entities/UserProfile.js';
+import type { HouseholdSettings, UpdateHouseholdSettingsInput } from '../entities/HouseholdSettings.js';
 
 export interface InvitationCandidate {
   firstName: string;
@@ -194,4 +195,9 @@ export interface HouseholdRepository {
   // User Profile
   getUserProfile(userId: string): Promise<UserProfile | null>;
   updateUserProfile(userId: string, input: UpdateUserProfileInput): Promise<UserProfile>;
+
+  // Household settings
+  getHouseholdSettings(householdId: string): Promise<HouseholdSettings>;
+  updateHouseholdSettings(householdId: string, input: UpdateHouseholdSettingsInput): Promise<HouseholdSettings>;
+  updateHouseholdName(householdId: string, name: string): Promise<Household>;
 }

@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { CreateAppointmentInput, UpdateAppointmentInput } from '../../domain/entities/Appointment.js';
 import type { CreateAppointmentReminderInput, UpdateAppointmentReminderInput } from '../../domain/entities/AppointmentReminder.js';
 import type { OccurrenceOverrides } from '../../domain/entities/AppointmentOccurrence.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import type { ListHouseholdAppointmentsUseCase } from '../../domain/usecases/appointments/ListHouseholdAppointmentsUseCase.js';
 import type { CreateAppointmentUseCase } from '../../domain/usecases/appointments/CreateAppointmentUseCase.js';
 import type { UpdateAppointmentUseCase } from '../../domain/usecases/appointments/UpdateAppointmentUseCase.js';
@@ -27,8 +28,7 @@ import {
 } from './appointmentSchemas.js';
 import { handleDomainError } from '../errorHandler.js';
 import { requireWritePermission } from '../../plugins/authContext.js';
-import { verifyTabletHouseholdAccess, getRequesterContext } from './utils.js';
-import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
+import { ensureHouseholdPermission, verifyTabletHouseholdAccess, getRequesterContext } from './utils.js';
 import {
   assertRequesterCanShareHealthData,
   buildHouseholdPrivacyContext,
@@ -38,6 +38,7 @@ import { NotFoundError } from '../../domain/errors/index.js';
 
 export function registerAppointmentRoutes(
   fastify: FastifyInstance,
+  repository: HouseholdRepository,
   useCases: {
     listHouseholdAppointmentsUseCase: ListHouseholdAppointmentsUseCase;
     createAppointmentUseCase: CreateAppointmentUseCase;
@@ -50,7 +51,6 @@ export function registerAppointmentRoutes(
     modifyOccurrenceUseCase: ModifyOccurrenceUseCase;
     cancelOccurrenceUseCase: CancelOccurrenceUseCase;
   },
-  repository: HouseholdRepository,
 ): void {
   type CreateAppointmentRouteInput = Parameters<CreateAppointmentUseCase['execute']>[0];
   type AppointmentRecurrenceInput = z.infer<typeof createAppointmentBodySchema>['recurrence'];
@@ -200,6 +200,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const body = bodyResult.data;
         const inputData: CreateAppointmentRouteInput = {
@@ -316,6 +317,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const updateData: UpdateAppointmentInput = {};
         const body = bodyResult.data;
@@ -399,6 +401,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         await useCases.deleteAppointmentUseCase.execute({
           appointmentId: paramsResult.data.appointmentId,
@@ -465,6 +468,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const body = bodyResult.data;
         const inputData: CreateAppointmentReminderInput & {
@@ -545,6 +549,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const updateData: UpdateAppointmentReminderInput = {};
         const body = bodyResult.data;
@@ -610,6 +615,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         await useCases.deleteAppointmentReminderUseCase.execute({
           reminderId: paramsResult.data.reminderId,
@@ -777,6 +783,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const requester = getRequesterContext(request);
         const occurrence = await useCases.modifyOccurrenceUseCase.execute({
@@ -841,6 +848,7 @@ export function registerAppointmentRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageAppointments');
 
         const requester = getRequesterContext(request);
         const occurrence = await useCases.cancelOccurrenceUseCase.execute({

@@ -1,4 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
+import { ForbiddenError } from '../../domain/errors/index.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
+import type { HouseholdPermissionAction } from '../../domain/entities/HouseholdSettings.js';
 
 // ============================================
 // Tablet Authentication Utilities
@@ -60,6 +63,37 @@ export const verifyTabletHouseholdAccess = (
       });
       throw new Error('Tablet household access denied');
     }
+  }
+};
+
+export const ensureHouseholdPermission = async (
+  request: FastifyRequest,
+  repository: HouseholdRepository,
+  householdId: string,
+  permission: HouseholdPermissionAction,
+): Promise<void> => {
+  if (request.tabletSession) {
+    throw new ForbiddenError('Tablets do not have permission for this action.');
+  }
+
+  const requester = request.requester;
+  if (!requester) {
+    throw new ForbiddenError('Authentication required.');
+  }
+
+  const member = await repository.findActiveMemberByUserInHousehold(
+    requester.userId,
+    householdId,
+  );
+
+  if (!member) {
+    throw new ForbiddenError('Access denied to this household.');
+  }
+
+  const settings = await repository.getHouseholdSettings(householdId);
+  const memberPermissions = settings.memberPermissions[member.id];
+  if (!memberPermissions?.[permission]) {
+    throw new ForbiddenError(`Missing required household permission: ${permission}.`);
   }
 };
 

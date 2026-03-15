@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { UpdateMedicationInput } from '../../domain/entities/Medication.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import type { ListHouseholdMedicationsUseCase } from '../../domain/usecases/medications/ListHouseholdMedicationsUseCase.js';
 import type { CreateMedicationUseCase } from '../../domain/usecases/medications/CreateMedicationUseCase.js';
 import type { UpdateMedicationUseCase } from '../../domain/usecases/medications/UpdateMedicationUseCase.js';
@@ -13,8 +14,7 @@ import {
 } from './medicationSchemas.js';
 import { handleDomainError } from '../errorHandler.js';
 import { requireWritePermission } from '../../plugins/authContext.js';
-import { verifyTabletHouseholdAccess, getRequesterContext } from './utils.js';
-import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
+import { ensureHouseholdPermission, verifyTabletHouseholdAccess, getRequesterContext } from './utils.js';
 import {
   assertRequesterCanShareHealthData,
   buildHouseholdPrivacyContext,
@@ -23,13 +23,13 @@ import {
 
 export function registerMedicationRoutes(
   fastify: FastifyInstance,
+  repository: HouseholdRepository,
   useCases: {
     listHouseholdMedicationsUseCase: ListHouseholdMedicationsUseCase;
     createMedicationUseCase: CreateMedicationUseCase;
     updateMedicationUseCase: UpdateMedicationUseCase;
     deleteMedicationUseCase: DeleteMedicationUseCase;
   },
-  repository: HouseholdRepository,
 ): void {
   type CreateMedicationRouteInput = Parameters<CreateMedicationUseCase['execute']>[0];
 
@@ -155,7 +155,7 @@ export function registerMedicationRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         const inputData: CreateMedicationRouteInput = {
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
@@ -245,7 +245,7 @@ export function registerMedicationRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         const updateData: UpdateMedicationInput = {};
         const body = bodyResult.data;
 
@@ -314,7 +314,7 @@ export function registerMedicationRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         await useCases.deleteMedicationUseCase.execute({
           medicationId: paramsResult.data.medicationId,
           householdId: paramsResult.data.householdId,

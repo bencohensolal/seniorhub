@@ -117,7 +117,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
   };
 
   // Register route modules
-  registerHouseholdRoutes(fastify, {
+  registerHouseholdRoutes(fastify, repository, {
     createHouseholdUseCase: useCases.createHouseholdUseCase,
     getHouseholdOverviewUseCase: useCases.getHouseholdOverviewUseCase,
     listUserHouseholdsUseCase: useCases.listUserHouseholdsUseCase,
@@ -125,7 +125,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     removeHouseholdMemberUseCase: useCases.removeHouseholdMemberUseCase,
     updateHouseholdMemberRoleUseCase: useCases.updateHouseholdMemberRoleUseCase,
     leaveHouseholdUseCase: useCases.leaveHouseholdUseCase,
-  }, repository);
+  });
 
   registerInvitationRoutes(fastify, repository, {
     createBulkInvitationsUseCase: useCases.createBulkInvitationsUseCase,
@@ -142,21 +142,21 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
 
   registerObservabilityRoutes(fastify);
 
-  registerMedicationRoutes(fastify, {
+  registerMedicationRoutes(fastify, repository, {
     listHouseholdMedicationsUseCase: useCases.listHouseholdMedicationsUseCase,
     createMedicationUseCase: useCases.createMedicationUseCase,
     updateMedicationUseCase: useCases.updateMedicationUseCase,
     deleteMedicationUseCase: useCases.deleteMedicationUseCase,
-  }, repository);
+  });
 
-  registerReminderRoutes(fastify, {
+  registerReminderRoutes(fastify, repository, {
     listMedicationRemindersUseCase: useCases.listMedicationRemindersUseCase,
     createReminderUseCase: useCases.createReminderUseCase,
     updateReminderUseCase: useCases.updateReminderUseCase,
     deleteReminderUseCase: useCases.deleteReminderUseCase,
-  }, repository);
+  });
 
-  registerAppointmentRoutes(fastify, {
+  registerAppointmentRoutes(fastify, repository, {
     listHouseholdAppointmentsUseCase: useCases.listHouseholdAppointmentsUseCase,
     createAppointmentUseCase: useCases.createAppointmentUseCase,
     updateAppointmentUseCase: useCases.updateAppointmentUseCase,
@@ -167,9 +167,9 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     listAppointmentOccurrencesUseCase: useCases.listAppointmentOccurrencesUseCase,
     modifyOccurrenceUseCase: useCases.modifyOccurrenceUseCase,
     cancelOccurrenceUseCase: useCases.cancelOccurrenceUseCase,
-  }, repository);
+  });
 
-  registerTaskRoutes(fastify, {
+  registerTaskRoutes(fastify, repository, {
     listHouseholdTasksUseCase: useCases.listHouseholdTasksUseCase,
     createTaskUseCase: useCases.createTaskUseCase,
     updateTaskUseCase: useCases.updateTaskUseCase,
@@ -178,7 +178,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     createTaskReminderUseCase: useCases.createTaskReminderUseCase,
     updateTaskReminderUseCase: useCases.updateTaskReminderUseCase,
     deleteTaskReminderUseCase: useCases.deleteTaskReminderUseCase,
-  }, repository);
+  });
 
   registerDisplayTabletRoutes(fastify, repository);
 

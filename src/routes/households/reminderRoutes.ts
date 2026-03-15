@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { UpdateReminderInput } from '../../domain/entities/MedicationReminder.js';
+import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import type { ListMedicationRemindersUseCase } from '../../domain/usecases/reminders/ListMedicationRemindersUseCase.js';
 import type { CreateReminderUseCase } from '../../domain/usecases/reminders/CreateReminderUseCase.js';
 import type { UpdateReminderUseCase } from '../../domain/usecases/reminders/UpdateReminderUseCase.js';
@@ -12,9 +13,8 @@ import {
   updateReminderBodySchema,
 } from './medicationSchemas.js';
 import { handleDomainError } from '../errorHandler.js';
-import { getRequesterContext } from './utils.js';
+import { ensureHouseholdPermission, getRequesterContext } from './utils.js';
 import { requireWritePermission } from '../../plugins/authContext.js';
-import type { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import {
   assertRequesterCanShareHealthData,
   buildHouseholdPrivacyContext,
@@ -24,13 +24,13 @@ import { NotFoundError } from '../../domain/errors/index.js';
 
 export function registerReminderRoutes(
   fastify: FastifyInstance,
+  repository: HouseholdRepository,
   useCases: {
     listMedicationRemindersUseCase: ListMedicationRemindersUseCase;
     createReminderUseCase: CreateReminderUseCase;
     updateReminderUseCase: UpdateReminderUseCase;
     deleteReminderUseCase: DeleteReminderUseCase;
   },
-  repository: HouseholdRepository,
 ): void {
   // GET /v1/households/:householdId/medications/:medicationId/reminders - List medication reminders
   fastify.get(
@@ -169,7 +169,7 @@ export function registerReminderRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         const reminder = await useCases.createReminderUseCase.execute({
           medicationId: paramsResult.data.medicationId,
           householdId: paramsResult.data.householdId,
@@ -252,7 +252,7 @@ export function registerReminderRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         const updateData: UpdateReminderInput = {};
         const body = bodyResult.data;
 
@@ -317,7 +317,7 @@ export function registerReminderRoutes(
 
       try {
         await assertRequesterCanShareHealthData(repository, request.requester!.userId);
-
+        await ensureHouseholdPermission(request, repository, paramsResult.data.householdId, 'manageMedications');
         await useCases.deleteReminderUseCase.execute({
           reminderId: paramsResult.data.reminderId,
           medicationId: paramsResult.data.medicationId,

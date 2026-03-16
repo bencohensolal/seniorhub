@@ -70,7 +70,7 @@ export class GCSStorageService implements StorageService {
     // Determine file extension
     const extension = this.getExtensionFromMimeType(input.mimeType);
 
-    // Generate GCS key (same structure as S3)
+    // Generate GCS key (same structure as before for compatibility)
     const key = `households/${input.householdId}/tablets/${input.tabletId}/photos/${input.photoId}.${extension}`;
 
     const bucket = this.storage.bucket(this.bucketName);
@@ -257,5 +257,36 @@ export class GCSStorageService implements StorageService {
     });
 
     return signedUrl;
+  }
+
+  /**
+   * Extract GCS key from URL
+   */
+  static extractKeyFromUrl(url: string): string | null {
+    // Try to match GCS URL patterns
+    const patterns = [
+      // storage.googleapis.com/{bucket}/{key}
+      /storage\.googleapis\.com\/[^/]+\/(.+)/,
+      // {bucket}.storage.googleapis.com/{key}
+      /([^/]+)\.storage\.googleapis\.com\/(.+)/,
+      // Match the key pattern directly (households/{householdId}/tablets/{tabletId}/photos/{photoId}.{ext})
+      /\/households\/[^/]+\/tablets\/[^/]+\/photos\/[^/]+\.[^/]+/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        // Return the key part (could be in different capture groups depending on pattern)
+        if (pattern.toString().includes('storage.googleapis.com')) {
+          // For patterns with bucket name, return everything after bucket
+          return match[1] ?? match[2] ?? null;
+        } else {
+          // For direct pattern match
+          return match[0].substring(1); // Remove leading slash
+        }
+      }
+    }
+
+    return null;
   }
 }

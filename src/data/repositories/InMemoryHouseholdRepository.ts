@@ -37,7 +37,7 @@ export const DEFAULT_TEST_HOUSEHOLD_ID = '3617e173-d359-492b-94b7-4c32622e7526';
 const households: Household[] = [
   {
     id: DEFAULT_TEST_HOUSEHOLD_ID,
-    name: 'Martin Family Home',
+    name: 'Famille Cohen Solal',
     createdByUserId: 'user-2',
     createdAt: nowIso(),
     updatedAt: nowIso(),
@@ -64,6 +64,18 @@ const members: Member[] = [
     email: 'ben@example.com',
     firstName: 'Ben',
     lastName: 'Martin',
+    role: 'caregiver',
+    status: 'active',
+    joinedAt: nowIso(),
+    createdAt: nowIso(),
+  },
+  {
+    id: 'member-3',
+    householdId: DEFAULT_TEST_HOUSEHOLD_ID,
+    userId: '111325199791749121741',
+    email: 'ben.cohen.solal@gmail.com',
+    firstName: 'Ben',
+    lastName: 'Cohen Solal',
     role: 'caregiver',
     status: 'active',
     joinedAt: nowIso(),

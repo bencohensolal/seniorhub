@@ -25,7 +25,7 @@ Implemented complete photo gallery screens feature for display tablets allowing 
 **Documentation:**
 - `docs/PHOTO_SCREENS_IMPLEMENTATION_COMPLETE.md` - Full implementation guide
 - `docs/PHOTO_SCREENS_FEATURE.md` - Feature specification
-- `docs/S3_CLOUDFRONT_SETUP.md` - AWS setup
+- `docs/GCS_SETUP.md` - Google Cloud Storage setup
 - `docs/GCS_SETUP.md` - Google Cloud setup
 
 ---
@@ -103,7 +103,7 @@ Gestion complète de la récurrence des rendez-vous avec possibilité de modifie
 2. ✅ `ModifyOccurrenceUseCase` - Modifie une occurrence spécifique (crée ou met à jour un override)
 3. ✅ `CancelOccurrenceUseCase` - Annule une occurrence spécifique (status=cancelled)
 
-#### API Endpoints  
+#### API Endpoints
 1. ✅ `GET /v1/households/:householdId/appointments/:appointmentId/occurrences?from=YYYY-MM-DD&to=YYYY-MM-DD` - Liste les occurrences avec overrides fusionnés
 2. ✅ `PATCH /v1/households/:householdId/appointments/:appointmentId/occurrences/:occurrenceDate` - Modifie une occurrence
 3. ✅ `DELETE /v1/households/:householdId/appointments/:appointmentId/occurrences/:occurrenceDate` - Annule une occurrence
@@ -138,7 +138,7 @@ interface RecurringAppointment {
   title: string;
   type: string;
   // ... autres champs existants
-  
+
   // Nouvelle règle de récurrence
   recurrence: {
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -148,7 +148,7 @@ interface RecurringAppointment {
     endDate?: string;
     occurrences?: number;
   } | null;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -158,14 +158,14 @@ interface AppointmentOccurrence {
   id: string;
   recurringAppointmentId: string; // FK vers recurring_appointments
   householdId: string;
-  
+
   // Date de cette occurrence spécifique
   occurrenceDate: string; // YYYY-MM-DD
   occurrenceTime: string; // HH:MM
-  
+
   // Statut de l'occurrence
   status: 'scheduled' | 'modified' | 'cancelled' | 'completed' | 'missed';
-  
+
   // Overrides optionnels (si modification)
   overrides?: {
     title?: string;
@@ -181,7 +181,7 @@ interface AppointmentOccurrence {
     transportArrangement?: string;
     notes?: string;
   };
-  
+
   createdAt: string;
   updatedAt: string;
 }

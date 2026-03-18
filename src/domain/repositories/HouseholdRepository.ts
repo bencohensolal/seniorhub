@@ -229,6 +229,9 @@ export interface HouseholdRepository {
     documents: Document[];
   }>;
 
+  // Storage quota
+  getStorageStats(householdId: string): Promise<{ usedBytes: number; quotaBytes: number }>;
+
   // Household settings
   getHouseholdSettings(householdId: string): Promise<HouseholdSettings>;
   updateHouseholdSettings(householdId: string, input: UpdateHouseholdSettingsInput): Promise<HouseholdSettings>;

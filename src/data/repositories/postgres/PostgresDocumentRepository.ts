@@ -862,6 +862,25 @@ export class PostgresDocumentRepository {
     return { storageKeys };
   }
 
+  async getStorageStats(householdId: string): Promise<{ usedBytes: number; quotaBytes: number }> {
+    const usedResult = await this.pool.query<{ used_bytes: string }>(
+      `SELECT COALESCE(SUM(file_size_bytes), 0)::bigint AS used_bytes
+       FROM documents
+       WHERE household_id = $1 AND deleted_at IS NULL`,
+      [householdId],
+    );
+
+    const quotaResult = await this.pool.query<{ storage_quota_bytes: string }>(
+      `SELECT storage_quota_bytes FROM households WHERE id = $1 LIMIT 1`,
+      [householdId],
+    );
+
+    const usedBytes = parseInt(usedResult.rows[0]?.used_bytes ?? '0', 10);
+    const quotaBytes = parseInt(quotaResult.rows[0]?.storage_quota_bytes ?? '5368709120', 10);
+
+    return { usedBytes, quotaBytes };
+  }
+
   async restoreDocument(documentId: string, householdId: string): Promise<void> {
     const now = nowIso();
     const result = await this.pool.query(

@@ -970,6 +970,13 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     return new Map();
   }
 
+  async getStorageStats(householdId: string): Promise<{ usedBytes: number; quotaBytes: number }> {
+    const usedBytes = documents
+      .filter((d) => d.householdId === householdId && !d.deletedAt)
+      .reduce((sum, d) => sum + d.fileSizeBytes, 0);
+    return { usedBytes, quotaBytes: 5368709120 }; // 5 GB default
+  }
+
   async getHouseholdSettings(householdId: string): Promise<HouseholdSettings> {
     const existing = householdSettingsStore.get(householdId);
     const next = this.buildHouseholdSettings(householdId, existing);

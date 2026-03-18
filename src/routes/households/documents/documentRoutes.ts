@@ -15,6 +15,7 @@ import type { MoveToTrashUseCase } from '../../../domain/usecases/documents/Move
 import type { RestoreFromTrashUseCase } from '../../../domain/usecases/documents/RestoreFromTrashUseCase.js';
 import type { PurgeExpiredTrashUseCase } from '../../../domain/usecases/documents/PurgeExpiredTrashUseCase.js';
 import type { PermanentlyDeleteFromTrashUseCase } from '../../../domain/usecases/documents/PermanentlyDeleteFromTrashUseCase.js';
+import type { GetStorageStatsUseCase } from '../../../domain/usecases/documents/GetStorageStatsUseCase.js';
 import type { GetDocumentDownloadUrlUseCase } from '../../../domain/usecases/documents/GetDocumentDownloadUrlUseCase.js';
 import { createStorageService } from '../../../data/services/storage/createStorageService.js';
 import { paramsSchema, errorResponseSchema } from '../householdSchemas.js';
@@ -54,6 +55,7 @@ export function registerDocumentRoutes(
     restoreFromTrashUseCase: RestoreFromTrashUseCase;
     purgeExpiredTrashUseCase: PurgeExpiredTrashUseCase;
     permanentlyDeleteFromTrashUseCase: PermanentlyDeleteFromTrashUseCase;
+    getStorageStatsUseCase: GetStorageStatsUseCase;
     getDocumentDownloadUrlUseCase: GetDocumentDownloadUrlUseCase;
   },
 ): void {
@@ -590,6 +592,17 @@ export function registerDocumentRoutes(
         const extension = originalFilename.split('.').pop()?.toUpperCase() ?? '';
         const fileSizeBytes = fileBuffer.length;
 
+        // Enforce storage quota before uploading
+        try {
+          const stats = await repository.getStorageStats(householdId);
+          if (stats.usedBytes + fileSizeBytes > stats.quotaBytes) {
+            return reply.status(413).send({
+              status: 'error',
+              message: `Storage quota exceeded. Used: ${stats.usedBytes} / ${stats.quotaBytes} bytes.`,
+            });
+          }
+        } catch { /* non-blocking: proceed if stats fail */ }
+
         try {
           const storageService = createStorageService();
           const { key: storageKey } = await storageService.uploadDocument({
@@ -705,6 +718,27 @@ export function registerDocumentRoutes(
       }
       try {
         const result = await useCases.purgeExpiredTrashUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          requester: getRequesterContext(request),
+        });
+        return reply.status(200).send({ status: 'success', data: result });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // GET /v1/households/:householdId/documents/storage-stats
+  fastify.get(
+    '/v1/households/:householdId/documents/storage-stats',
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({ status: 'error', message: 'Invalid request payload.' });
+      }
+      try {
+        verifyTabletHouseholdAccess(request, reply, paramsResult.data.householdId);
+        const result = await useCases.getStorageStatsUseCase.execute({
           householdId: paramsResult.data.householdId,
           requester: getRequesterContext(request),
         });

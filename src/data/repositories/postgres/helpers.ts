@@ -351,7 +351,7 @@ export const mapDocument = (row: {
   mimeType: row.mime_type,
   fileSizeBytes: row.file_size_bytes,
   extension: row.extension,
-  eventDate: row.event_date ? toIso(row.event_date).split('T')[0] : null,
+  eventDate: row.event_date ? (toIso(row.event_date).split('T')[0] ?? null) : null,
   category: row.category,
   tags: row.tags ?? [],
   uploadedByUserId: row.uploaded_by_user_id,

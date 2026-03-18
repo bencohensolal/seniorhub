@@ -29,10 +29,11 @@ export class PostgresDocumentRepository {
       created_at: string | Date;
       updated_at: string | Date;
       deleted_at: string | Date | null;
+      trashed_at: string | Date | null;
     }>(
       `SELECT id, household_id, parent_folder_id, senior_id, name, description,
               type, system_root_type, created_by_user_id,
-              created_at, updated_at, deleted_at
+              created_at, updated_at, deleted_at, trashed_at
        FROM document_folders
        WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
        LIMIT 1`,
@@ -235,10 +236,11 @@ export class PostgresDocumentRepository {
       uploaded_at: string | Date;
       updated_at: string | Date;
       deleted_at: string | Date | null;
+      trashed_at: string | Date | null;
     }>(
       `SELECT id, household_id, folder_id, senior_id, name, description, original_filename,
               storage_key, mime_type, file_size_bytes, extension, event_date, category, tags,
-              uploaded_by_user_id, uploaded_at, updated_at, deleted_at
+              uploaded_by_user_id, uploaded_at, updated_at, deleted_at, trashed_at
        FROM documents
        WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
        LIMIT 1`,
@@ -823,7 +825,7 @@ export class PostgresDocumentRepository {
               storage_key, mime_type, file_size_bytes, extension, event_date, category, tags,
               uploaded_by_user_id, uploaded_at, updated_at, deleted_at
        FROM documents
-       WHERE folder_id = $1 AND household_id = $2 AND deleted_at IS NULL AND trashed_at IS NULL
+       WHERE folder_id = $1 AND household_id = $2 AND deleted_at IS NULL
        ORDER BY uploaded_at DESC
        LIMIT $3 OFFSET $4`,
       [folderId, householdId, limit + 1, offset],

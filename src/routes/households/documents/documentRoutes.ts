@@ -736,6 +736,7 @@ export function registerDocumentRoutes(
         const result = await useCases.searchDocumentsUseCase.execute({
           householdId: paramsResult.data.householdId,
           query: queryResult.data.query,
+          folderId: queryResult.data.folderId ?? null,
           requester: getRequesterContext(request),
         });
 

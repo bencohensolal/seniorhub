@@ -1389,7 +1389,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     return { folders, documents: docs };
   }
 
-  async searchDocumentsAndFolders(householdId: string, query: string): Promise<{
+  async searchDocumentsAndFolders(householdId: string, query: string, folderId?: string | null): Promise<{
     folders: DocumentFolder[];
     documents: Document[];
   }> {
@@ -1397,10 +1397,26 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     if (!normalizedQuery) {
       return { folders: [], documents: [] };
     }
+
+    // Collect all folder IDs in the subtree if folderId is given
+    let allowedFolderIds: Set<string> | null = null;
+    if (folderId) {
+      allowedFolderIds = new Set<string>();
+      const queue = [folderId];
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        allowedFolderIds.add(current);
+        documentFolders
+          .filter(f => f.parentFolderId === current && f.householdId === householdId && !f.deletedAt)
+          .forEach(f => queue.push(f.id));
+      }
+    }
+
     const filteredFolders = documentFolders.filter(
       (folder) =>
         folder.householdId === householdId &&
         !folder.deletedAt &&
+        (!allowedFolderIds || allowedFolderIds.has(folder.id)) &&
         (folder.name.toLowerCase().includes(normalizedQuery) ||
           (folder.description && folder.description.toLowerCase().includes(normalizedQuery)))
     );
@@ -1408,6 +1424,7 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
       (doc) =>
         doc.householdId === householdId &&
         !doc.deletedAt &&
+        (!allowedFolderIds || allowedFolderIds.has(doc.folderId)) &&
         (doc.name.toLowerCase().includes(normalizedQuery) ||
           doc.originalFilename.toLowerCase().includes(normalizedQuery))
     );

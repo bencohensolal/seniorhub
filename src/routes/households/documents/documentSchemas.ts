@@ -72,6 +72,7 @@ export const listDocumentsByFolderQuerySchema = z.object({
 // Schema for searching documents and folders
 export const searchDocumentsQuerySchema = z.object({
   query: z.string().min(1).max(100),
+  folderId: z.string().uuid().optional(),
 });
 
 // Response schemas

@@ -496,11 +496,43 @@ export class PostgresDocumentRepository {
     return result.rows.map(mapDocumentFolder);
   }
 
-  async searchDocumentsAndFolders(householdId: string, query: string): Promise<{
+  async searchDocumentsAndFolders(householdId: string, query: string, folderId?: string | null): Promise<{
     documents: Document[];
     folders: DocumentFolder[];
   }> {
     const searchPattern = `%${query}%`;
+
+    // When a folderId is given, use a recursive CTE to collect all descendant folder IDs
+    // so the search covers the subtree rooted at that folder.
+    const folderFilter = folderId
+      ? `AND folder_id IN (
+           WITH RECURSIVE subtree AS (
+             SELECT id FROM document_folders WHERE id = $3 AND household_id = $1 AND deleted_at IS NULL
+             UNION ALL
+             SELECT df.id FROM document_folders df
+             JOIN subtree s ON df.parent_folder_id = s.id
+             WHERE df.household_id = $1 AND df.deleted_at IS NULL
+           )
+           SELECT id FROM subtree
+         )`
+      : '';
+
+    const folderFolderFilter = folderId
+      ? `AND (id = $3 OR parent_folder_id IN (
+           WITH RECURSIVE subtree AS (
+             SELECT id FROM document_folders WHERE id = $3 AND household_id = $1 AND deleted_at IS NULL
+             UNION ALL
+             SELECT df.id FROM document_folders df
+             JOIN subtree s ON df.parent_folder_id = s.id
+             WHERE df.household_id = $1 AND df.deleted_at IS NULL
+           )
+           SELECT id FROM subtree
+         ))`
+      : '';
+
+    const baseParams: (string | number)[] = folderId
+      ? [householdId, searchPattern, folderId]
+      : [householdId, searchPattern];
 
     const documentsResult = await this.pool.query<{
       id: string;
@@ -526,10 +558,11 @@ export class PostgresDocumentRepository {
               storage_key, mime_type, file_size_bytes, extension, event_date, category, tags,
               uploaded_by_user_id, uploaded_at, updated_at, deleted_at
        FROM documents
-       WHERE household_id = $1 AND deleted_at IS NULL
+       WHERE household_id = $1 AND deleted_at IS NULL AND trashed_at IS NULL
          AND (name ILIKE $2 OR original_filename ILIKE $2 OR description ILIKE $2)
+         ${folderFilter}
        ORDER BY uploaded_at DESC`,
-      [householdId, searchPattern],
+      baseParams,
     );
 
     const foldersResult = await this.pool.query<{
@@ -550,10 +583,11 @@ export class PostgresDocumentRepository {
               type, system_root_type, created_by_user_id,
               created_at, updated_at, deleted_at
        FROM document_folders
-       WHERE household_id = $1 AND deleted_at IS NULL
+       WHERE household_id = $1 AND deleted_at IS NULL AND trashed_at IS NULL
          AND (name ILIKE $2 OR description ILIKE $2)
+         ${folderFolderFilter}
        ORDER BY name ASC`,
-      [householdId, searchPattern],
+      baseParams,
     );
 
     return {

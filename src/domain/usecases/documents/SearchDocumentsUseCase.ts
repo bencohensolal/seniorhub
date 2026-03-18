@@ -22,6 +22,7 @@ export class SearchDocumentsUseCase {
   async execute(input: {
     householdId: string;
     query: string;
+    folderId?: string | null;
     requester: AuthenticatedRequester;
   }): Promise<{
     documents: Document[];
@@ -36,7 +37,7 @@ export class SearchDocumentsUseCase {
     );
 
     // Search documents and folders
-    const result = await this.repository.searchDocumentsAndFolders(input.householdId, input.query);
+    const result = await this.repository.searchDocumentsAndFolders(input.householdId, input.query, input.folderId);
 
     return result;
   }

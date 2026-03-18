@@ -73,7 +73,7 @@ flowchart TB
 |--------|----------------|-------------|
 | `households` | `usecases/households/` | Household CRUD, overview, member management |
 | `invitations` | `usecases/invitations/` | Invitation lifecycle: bulk create, accept, cancel, resend |
-| `appointments` | `usecases/appointments/` | Appointments with recurrence, individual occurrence overrides |
+| `appointments` | `usecases/appointments/` | Appointments with recurrence, individual and batch occurrence overrides, restore, upcoming timeline |
 | `medications` | `usecases/medications/` | Medications + autocomplete |
 | `reminders` | `usecases/reminders/` | Medication reminders |
 | `tasks` | `usecases/tasks/` | Tasks with completion tracking |
@@ -277,11 +277,21 @@ src/domain/usecases/
 ```
 src/data/repositories/
 ├── postgres/
-│   └── helpers.ts                    # Shared DB utilities (mappers, normalizers, date helpers)
-├── PostgresHouseholdRepository.ts    # All domain data access (single large repository)
+│   ├── PostgresHouseholdCoreRepository.ts    # Households, members, settings, invitations, audit events
+│   ├── PostgresAppointmentRepository.ts      # Appointments, reminders, occurrence overrides
+│   ├── PostgresMedicationRepository.ts       # Medications + reminders
+│   ├── PostgresTaskRepository.ts             # Tasks + task reminders
+│   ├── PostgresDisplayTabletRepository.ts    # Tablet lifecycle, auth, config
+│   ├── PostgresPhotoScreenRepository.ts      # Photo screens + photos
+│   ├── PostgresDocumentRepository.ts         # Folders, documents, system roots
+│   ├── PostgresPrivacyRepository.ts          # Privacy settings + user profile
+│   └── helpers.ts                            # Shared DB utilities (mappers, normalizers, date helpers)
+├── PostgresHouseholdRepository.ts    # Thin facade — composes the 8 domain repos above
 ├── InMemoryHouseholdRepository.ts    # In-memory stub for tests
 └── createHouseholdRepository.ts      # Driver switch (env: PERSISTENCE_DRIVER)
 ```
+
+`PostgresHouseholdRepository` is a pure delegation facade: it instantiates the 8 domain repositories, then exposes every method as a one-liner arrow function property. The `HouseholdRepository` interface, all use-cases, and `InMemoryHouseholdRepository` are unaffected.
 
 Persistence driver switch:
 - `PERSISTENCE_DRIVER=postgres` → `PostgresHouseholdRepository`

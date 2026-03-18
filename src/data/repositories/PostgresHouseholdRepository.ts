@@ -184,6 +184,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
   listDocumentsByFolder = (householdId: string, folderId: string): Promise<Document[]> => this.documents.listDocumentsByFolder(householdId, folderId);
   createDocument = (input: CreateDocumentInput): Promise<Document> => this.documents.createDocument(input);
   updateDocument = (documentId: string, householdId: string, input: UpdateDocumentInput): Promise<Document> => this.documents.updateDocument(documentId, householdId, input);
+  listDocumentsByFolderPaginated = (householdId: string, folderId: string, limit: number, offset: number): Promise<{ documents: Document[]; hasMore: boolean }> => this.documents.listDocumentsByFolderPaginated(householdId, folderId, limit, offset);
   softDeleteDocument = (documentId: string, householdId: string): Promise<void> => this.documents.softDeleteDocument(documentId, householdId);
   hardDeleteDocument = (documentId: string, householdId: string): Promise<{ storageKey: string }> => this.documents.hardDeleteDocument(documentId, householdId);
   hardDeleteDocumentFolder = (folderId: string, householdId: string): Promise<{ storageKeys: string[] }> => this.documents.hardDeleteDocumentFolder(folderId, householdId);

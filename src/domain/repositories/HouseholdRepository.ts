@@ -218,6 +218,7 @@ export interface HouseholdRepository {
 
   getDocumentById(documentId: string, householdId: string): Promise<Document | null>;
   listDocumentsByFolder(householdId: string, folderId: string): Promise<Document[]>;
+  listDocumentsByFolderPaginated(householdId: string, folderId: string, limit: number, offset: number): Promise<{ documents: Document[]; hasMore: boolean }>;
   createDocument(input: CreateDocumentInput): Promise<Document>;
   updateDocument(documentId: string, householdId: string, input: UpdateDocumentInput): Promise<Document>;
   softDeleteDocument(documentId: string, householdId: string): Promise<void>;

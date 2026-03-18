@@ -21,26 +21,30 @@ export class ListFolderContentUseCase {
    */
   async execute(input: {
     householdId: string;
-    folderId: string | null; // null for root (system roots)
+    folderId: string | null;
     requester: AuthenticatedRequester;
+    limit?: number;
+    offset?: number;
   }): Promise<{
     folders: DocumentFolderWithCounts[];
     documents: Document[];
+    hasMore: boolean;
   }> {
-    // Validate member access and viewDocuments permission
     await this.accessValidator.ensureMember(input.requester.userId, input.householdId);
-    await this.accessValidator.ensurePermission(
-      input.requester.userId,
-      input.householdId,
-      'viewDocuments',
+    await this.accessValidator.ensurePermission(input.requester.userId, input.householdId, 'viewDocuments');
+
+    const folders = await this.repository.listDocumentFoldersByParent(input.householdId, input.folderId);
+
+    if (!input.folderId) {
+      return { folders, documents: [], hasMore: false };
+    }
+
+    const limit = input.limit ?? 50;
+    const offset = input.offset ?? 0;
+    const { documents, hasMore } = await this.repository.listDocumentsByFolderPaginated(
+      input.householdId, input.folderId, limit, offset,
     );
 
-    // Fetch folders and documents
-    const folders = await this.repository.listDocumentFoldersByParent(input.householdId, input.folderId);
-    const documents = input.folderId
-      ? await this.repository.listDocumentsByFolder(input.householdId, input.folderId)
-      : [];
-
-    return { folders, documents };
+    return { folders, documents, hasMore };
   }
 }

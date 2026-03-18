@@ -970,6 +970,14 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     return new Map();
   }
 
+  async listDocumentsByFolderPaginated(householdId: string, folderId: string, limit: number, offset: number): Promise<{ documents: Document[]; hasMore: boolean }> {
+    const all = documents.filter(
+      (d) => d.folderId === folderId && d.householdId === householdId && !d.deletedAt && !d.trashedAt,
+    );
+    const page = all.slice(offset, offset + limit);
+    return { documents: page, hasMore: offset + limit < all.length };
+  }
+
   async getStorageStats(householdId: string): Promise<{ usedBytes: number; quotaBytes: number }> {
     const usedBytes = documents
       .filter((d) => d.householdId === householdId && !d.deletedAt)

@@ -810,6 +810,30 @@ export class PostgresDocumentRepository {
     return { folders: purgedFolders, documents: purgedDocuments };
   }
 
+  async listDocumentsByFolderPaginated(householdId: string, folderId: string, limit: number, offset: number): Promise<{ documents: Document[]; hasMore: boolean }> {
+    const result = await this.pool.query<{
+      id: string; household_id: string; folder_id: string; senior_id: string | null;
+      name: string; description: string | null; original_filename: string; storage_key: string;
+      mime_type: string; file_size_bytes: number; extension: string;
+      event_date: string | Date | null; category: string | null; tags: string[] | null;
+      uploaded_by_user_id: string; uploaded_at: string | Date; updated_at: string | Date;
+      deleted_at: string | Date | null;
+    }>(
+      `SELECT id, household_id, folder_id, senior_id, name, description, original_filename,
+              storage_key, mime_type, file_size_bytes, extension, event_date, category, tags,
+              uploaded_by_user_id, uploaded_at, updated_at, deleted_at
+       FROM documents
+       WHERE folder_id = $1 AND household_id = $2 AND deleted_at IS NULL AND trashed_at IS NULL
+       ORDER BY uploaded_at DESC
+       LIMIT $3 OFFSET $4`,
+      [folderId, householdId, limit + 1, offset],
+    );
+
+    const hasMore = result.rows.length > limit;
+    const documents = result.rows.slice(0, limit).map(mapDocument);
+    return { documents, hasMore };
+  }
+
   async softDeleteDocument(documentId: string, householdId: string): Promise<void> {
     // Already implemented as deleteDocument
     return this.deleteDocument(documentId, householdId);

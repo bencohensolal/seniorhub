@@ -126,7 +126,11 @@ export function registerDocumentRoutes(
         },
         querystring: {
           type: 'object',
-          properties: { parentFolderId: { type: 'string', nullable: true } },
+          properties: {
+            parentFolderId: { type: 'string', nullable: true },
+            limit: { type: 'integer', minimum: 1, maximum: 200 },
+            offset: { type: 'integer', minimum: 0 },
+          },
         },
         response: {
           200: {
@@ -162,11 +166,14 @@ export function registerDocumentRoutes(
 
       try {
         verifyTabletHouseholdAccess(request, reply, paramsResult.data.householdId);
+        const query = request.query as { limit?: number; offset?: number };
 
         const result = await useCases.listFolderContentUseCase.execute({
           householdId: paramsResult.data.householdId,
           folderId: queryResult.data.parentFolderId ?? null,
           requester: getRequesterContext(request),
+          ...(query.limit !== undefined && { limit: query.limit }),
+          ...(query.offset !== undefined && { offset: query.offset }),
         });
 
         return reply.status(200).send({

@@ -13,6 +13,8 @@ export interface Document {
   uploadedAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  trashedAt: string | null;
+  originalFolderId: string | null;
 }
 
 export interface CreateDocumentInput {

@@ -333,6 +333,8 @@ export const mapDocument = (row: {
   uploaded_at: string | Date;
   updated_at: string | Date;
   deleted_at: string | Date | null;
+  trashed_at?: string | Date | null;
+  original_folder_id?: string | null;
 }): Document => ({
   id: row.id,
   householdId: row.household_id,
@@ -348,6 +350,8 @@ export const mapDocument = (row: {
   uploadedAt: toIso(row.uploaded_at),
   updatedAt: toIso(row.updated_at),
   deletedAt: row.deleted_at ? toIso(row.deleted_at) : null,
+  trashedAt: row.trashed_at ? toIso(row.trashed_at) : null,
+  originalFolderId: row.original_folder_id ?? null,
 });
 
 export const mapDocumentFolder = (row: {
@@ -358,11 +362,13 @@ export const mapDocumentFolder = (row: {
   name: string;
   description: string | null;
   type: 'system_root' | 'senior_folder' | 'user_folder';
-  system_root_type: 'medical' | 'administrative' | null;
+  system_root_type: 'medical' | 'administrative' | 'trash' | null;
   created_by_user_id: string;
   created_at: string | Date;
   updated_at: string | Date;
   deleted_at: string | Date | null;
+  trashed_at?: string | Date | null;
+  original_parent_folder_id?: string | null;
   document_count?: number | string | null;
   folder_count?: number | string | null;
 }): DocumentFolderWithCounts => {
@@ -379,6 +385,8 @@ export const mapDocumentFolder = (row: {
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
     deletedAt: row.deleted_at ? toIso(row.deleted_at) : null,
+    trashedAt: row.trashed_at ? toIso(row.trashed_at) : null,
+    originalParentFolderId: row.original_parent_folder_id ?? null,
     documentCount: Number(row.document_count ?? 0),
     folderCount: Number(row.folder_count ?? 0),
   };

@@ -69,6 +69,9 @@ import { CreateDocumentUseCase } from '../../domain/usecases/documents/CreateDoc
 import { UpdateDocumentUseCase } from '../../domain/usecases/documents/UpdateDocumentUseCase.js';
 import { DeleteDocumentUseCase } from '../../domain/usecases/documents/DeleteDocumentUseCase.js';
 import { SearchDocumentsUseCase } from '../../domain/usecases/documents/SearchDocumentsUseCase.js';
+import { MoveToTrashUseCase } from '../../domain/usecases/documents/MoveToTrashUseCase.js';
+import { RestoreFromTrashUseCase } from '../../domain/usecases/documents/RestoreFromTrashUseCase.js';
+import { PurgeExpiredTrashUseCase } from '../../domain/usecases/documents/PurgeExpiredTrashUseCase.js';
 import { registerDocumentRoutes } from './documents/documentRoutes.js';
 
 /**
@@ -144,6 +147,9 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     updateDocumentUseCase: new UpdateDocumentUseCase(repository),
     deleteDocumentUseCase: new DeleteDocumentUseCase(repository),
     searchDocumentsUseCase: new SearchDocumentsUseCase(repository),
+    moveToTrashUseCase: new MoveToTrashUseCase(repository),
+    restoreFromTrashUseCase: new RestoreFromTrashUseCase(repository),
+    purgeExpiredTrashUseCase: new PurgeExpiredTrashUseCase(repository),
   };
 
   // Register route modules
@@ -233,6 +239,9 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     updateDocumentUseCase: useCases.updateDocumentUseCase,
     deleteDocumentUseCase: useCases.deleteDocumentUseCase,
     searchDocumentsUseCase: useCases.searchDocumentsUseCase,
+    moveToTrashUseCase: useCases.moveToTrashUseCase,
+    restoreFromTrashUseCase: useCases.restoreFromTrashUseCase,
+    purgeExpiredTrashUseCase: useCases.purgeExpiredTrashUseCase,
   });
 
   // Register photo screen routes with v1 prefix

@@ -27,6 +27,7 @@ export class ListDocumentRootsUseCase {
     medicalRoot: DocumentFolderWithCounts;
     administrativeRoot: DocumentFolderWithCounts;
     seniorFolders: DocumentFolderWithCounts[];
+    trashRoot: DocumentFolderWithCounts;
   }> {
     // Validate member access and viewDocuments permission
     await this.accessValidator.ensureMember(input.requester.userId, input.householdId);
@@ -42,8 +43,9 @@ export class ListDocumentRootsUseCase {
     // Fetch system roots
     const medicalRoot = await this.repository.getSystemRootFolder(input.householdId, 'medical');
     const administrativeRoot = await this.repository.getSystemRootFolder(input.householdId, 'administrative');
+    const trashRoot = await this.repository.getSystemRootFolder(input.householdId, 'trash');
 
-    if (!medicalRoot || !administrativeRoot) {
+    if (!medicalRoot || !administrativeRoot || !trashRoot) {
       throw new NotFoundError('System roots not found after creation');
     }
 
@@ -54,6 +56,7 @@ export class ListDocumentRootsUseCase {
       medicalRoot,
       administrativeRoot,
       seniorFolders,
+      trashRoot,
     };
   }
 }

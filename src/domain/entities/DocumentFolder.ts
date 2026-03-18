@@ -1,7 +1,7 @@
 import type { HouseholdRole } from './Member.js';
 
 export type DocumentFolderType = 'system_root' | 'senior_folder' | 'user_folder';
-export type SystemRootType = 'medical' | 'administrative';
+export type SystemRootType = 'medical' | 'administrative' | 'trash';
 
 export interface DocumentFolder {
   id: string;
@@ -16,6 +16,8 @@ export interface DocumentFolder {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  trashedAt: string | null;
+  originalParentFolderId: string | null;
 }
 
 export interface CreateDocumentFolderInput {
@@ -58,3 +60,11 @@ export const isMedicalRoot = (folder: DocumentFolder): boolean =>
 // Helper to check if a folder is an administrative root
 export const isAdministrativeRoot = (folder: DocumentFolder): boolean =>
   folder.type === 'system_root' && folder.systemRootType === 'administrative';
+
+// Helper to check if a folder is the trash root
+export const isTrashRoot = (folder: DocumentFolder): boolean =>
+  folder.type === 'system_root' && folder.systemRootType === 'trash';
+
+// Helper to check if a folder is in trash
+export const isInTrash = (folder: DocumentFolder): boolean =>
+  folder.trashedAt !== null;

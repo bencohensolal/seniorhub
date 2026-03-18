@@ -245,7 +245,7 @@ export class PostgresDocumentRepository {
     return row ? mapDocument(row) : null;
   }
 
-  async listDocumentsByFolder(folderId: string, householdId: string): Promise<Document[]> {
+  async listDocumentsByFolder(householdId: string, folderId: string): Promise<Document[]> {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
@@ -541,7 +541,7 @@ export class PostgresDocumentRepository {
     }
   }
 
-  async getSystemRootFolder(householdId: string, systemRootType: 'medical' | 'administrative'): Promise<DocumentFolderWithCounts | null> {
+  async getSystemRootFolder(householdId: string, systemRootType: 'medical' | 'administrative' | 'trash'): Promise<DocumentFolderWithCounts | null> {
     const result = await this.pool.query<{
       id: string;
       household_id: string;
@@ -574,28 +574,138 @@ export class PostgresDocumentRepository {
   }
 
   async ensureSystemRootsForHousehold(householdId: string, userId: string): Promise<void> {
-    const types: ('medical' | 'administrative')[] = ['medical', 'administrative'];
-    for (const type of types) {
-      const existing = await this.getSystemRootFolder(householdId, type);
+    const roots: Array<{ type: 'medical' | 'administrative' | 'trash'; name: string; description: string }> = [
+      { type: 'medical', name: 'Medical Documents', description: 'Medical records and health-related documents' },
+      { type: 'administrative', name: 'Administrative Documents', description: 'Administrative and legal documents' },
+      { type: 'trash', name: 'Trash', description: 'Deleted items — automatically purged after 30 days.' },
+    ];
+
+    for (const root of roots) {
+      const existing = await this.getSystemRootFolder(householdId, root.type);
       if (!existing) {
         await this.createDocumentFolder({
           householdId,
           parentFolderId: null,
-          name: type === 'medical' ? 'Medical Documents' : 'Administrative Documents',
-          description: type === 'medical' ? 'Medical records and health-related documents' : 'Administrative and legal documents',
+          name: root.name,
+          description: root.description,
           type: 'system_root',
           isSystemRoot: true,
-          systemRootType: type,
+          systemRootType: root.type,
           createdByUserId: userId,
         });
 
-        // Verify creation by fetching again
-        const verified = await this.getSystemRootFolder(householdId, type);
+        const verified = await this.getSystemRootFolder(householdId, root.type);
         if (!verified) {
-          throw new Error(`Failed to create system root folder of type ${type} for household ${householdId}`);
+          throw new Error(`Failed to create system root folder of type ${root.type} for household ${householdId}`);
         }
       }
     }
+  }
+
+  async moveDocumentFolderToTrash(folderId: string, householdId: string, trashFolderId: string): Promise<void> {
+    const now = nowIso();
+    const result = await this.pool.query(
+      `UPDATE document_folders
+       SET parent_folder_id = $1, trashed_at = $2, original_parent_folder_id = parent_folder_id, updated_at = $2
+       WHERE id = $3 AND household_id = $4 AND deleted_at IS NULL AND trashed_at IS NULL`,
+      [trashFolderId, now, folderId, householdId],
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Folder not found or already trashed.');
+    }
+  }
+
+  async moveDocumentToTrash(documentId: string, householdId: string, trashFolderId: string): Promise<void> {
+    const now = nowIso();
+    const result = await this.pool.query(
+      `UPDATE documents
+       SET folder_id = $1, trashed_at = $2, original_folder_id = folder_id, updated_at = $2
+       WHERE id = $3 AND household_id = $4 AND deleted_at IS NULL AND trashed_at IS NULL`,
+      [trashFolderId, now, documentId, householdId],
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Document not found or already trashed.');
+    }
+  }
+
+  async restoreDocumentFolderFromTrash(folderId: string, householdId: string): Promise<void> {
+    const now = nowIso();
+    const result = await this.pool.query(
+      `UPDATE document_folders
+       SET parent_folder_id = original_parent_folder_id, trashed_at = NULL, original_parent_folder_id = NULL, updated_at = $1
+       WHERE id = $2 AND household_id = $3 AND deleted_at IS NULL AND trashed_at IS NOT NULL`,
+      [now, folderId, householdId],
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Folder not found or not in trash.');
+    }
+  }
+
+  async restoreDocumentFromTrash(documentId: string, householdId: string): Promise<void> {
+    const now = nowIso();
+    const result = await this.pool.query(
+      `UPDATE documents
+       SET folder_id = original_folder_id, trashed_at = NULL, original_folder_id = NULL, updated_at = $1
+       WHERE id = $2 AND household_id = $3 AND deleted_at IS NULL AND trashed_at IS NOT NULL`,
+      [now, documentId, householdId],
+    );
+    if (result.rowCount === 0) {
+      throw new Error('Document not found or not in trash.');
+    }
+  }
+
+  async purgeExpiredTrashItems(householdId: string, retentionDays: number): Promise<{ folders: number; documents: number }> {
+    const now = nowIso();
+
+    // Find all expired trash folders recursively (including their descendants)
+    const expiredFoldersResult = await this.pool.query<{ id: string }>(
+      `WITH RECURSIVE trash_tree AS (
+         SELECT id FROM document_folders
+         WHERE household_id = $1
+           AND trashed_at IS NOT NULL
+           AND deleted_at IS NULL
+           AND trashed_at < NOW() - ($2 || ' days')::INTERVAL
+         UNION ALL
+         SELECT df.id FROM document_folders df
+         INNER JOIN trash_tree tt ON df.parent_folder_id = tt.id
+         WHERE df.deleted_at IS NULL
+       )
+       SELECT id FROM trash_tree`,
+      [householdId, retentionDays],
+    );
+
+    const expiredFolderIds = expiredFoldersResult.rows.map((r) => r.id);
+    let purgedFolders = 0;
+    let purgedDocuments = 0;
+
+    if (expiredFolderIds.length > 0) {
+      // Soft-delete documents inside expired folders
+      const docsResult = await this.pool.query(
+        `UPDATE documents SET deleted_at = $1 WHERE folder_id = ANY($2) AND deleted_at IS NULL`,
+        [now, expiredFolderIds],
+      );
+      purgedDocuments += docsResult.rowCount ?? 0;
+
+      // Soft-delete expired folders
+      const foldersResult = await this.pool.query(
+        `UPDATE document_folders SET deleted_at = $1 WHERE id = ANY($2) AND deleted_at IS NULL`,
+        [now, expiredFolderIds],
+      );
+      purgedFolders += foldersResult.rowCount ?? 0;
+    }
+
+    // Soft-delete directly trashed documents past retention
+    const directDocsResult = await this.pool.query(
+      `UPDATE documents SET deleted_at = $1
+       WHERE household_id = $2
+         AND trashed_at IS NOT NULL
+         AND deleted_at IS NULL
+         AND trashed_at < NOW() - ($3 || ' days')::INTERVAL`,
+      [now, householdId, retentionDays],
+    );
+    purgedDocuments += directDocsResult.rowCount ?? 0;
+
+    return { folders: purgedFolders, documents: purgedDocuments };
   }
 
   async softDeleteDocument(documentId: string, householdId: string): Promise<void> {

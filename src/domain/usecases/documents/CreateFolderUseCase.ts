@@ -30,12 +30,20 @@ export class CreateFolderUseCase {
       'manageDocuments',
     );
 
+    // Disallow creation at root level
+    if (!input.parentFolderId) {
+      throw new ForbiddenError('Cannot create a folder at the root level.');
+    }
+
     // Validate parent folder exists and belongs to same household
-    if (input.parentFolderId) {
-      const parentFolder = await this.repository.getDocumentFolderById(input.parentFolderId, input.householdId);
-      if (!parentFolder) {
-        throw new ForbiddenError('Parent folder not found or does not belong to this household.');
-      }
+    const parentFolder = await this.repository.getDocumentFolderById(input.parentFolderId, input.householdId);
+    if (!parentFolder) {
+      throw new ForbiddenError('Parent folder not found or does not belong to this household.');
+    }
+
+    // Disallow creation inside the trash folder
+    if (parentFolder.type === 'system_root' && parentFolder.systemRootType === 'trash') {
+      throw new ForbiddenError('Cannot create a folder inside the trash.');
     }
 
     // Create folder

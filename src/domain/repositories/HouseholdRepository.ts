@@ -206,7 +206,12 @@ export interface HouseholdRepository {
   updateDocumentFolder(folderId: string, householdId: string, input: UpdateDocumentFolderInput): Promise<DocumentFolder>;
   softDeleteDocumentFolder(folderId: string, householdId: string): Promise<void>;
   restoreDocumentFolder(folderId: string, householdId: string): Promise<void>;
-  getSystemRootFolder(householdId: string, systemRootType: 'medical' | 'administrative'): Promise<DocumentFolderWithCounts | null>;
+  getSystemRootFolder(householdId: string, systemRootType: 'medical' | 'administrative' | 'trash'): Promise<DocumentFolderWithCounts | null>;
+  moveDocumentFolderToTrash(folderId: string, householdId: string, trashFolderId: string): Promise<void>;
+  moveDocumentToTrash(documentId: string, householdId: string, trashFolderId: string): Promise<void>;
+  restoreDocumentFolderFromTrash(folderId: string, householdId: string): Promise<void>;
+  restoreDocumentFromTrash(documentId: string, householdId: string): Promise<void>;
+  purgeExpiredTrashItems(householdId: string, retentionDays: number): Promise<{ folders: number; documents: number }>;
   ensureSystemRootsForHousehold(householdId: string, userId: string): Promise<void>;
   listSeniorFolders(householdId: string): Promise<DocumentFolderWithCounts[]>;
 

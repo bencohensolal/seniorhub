@@ -11,6 +11,9 @@ import type { CreateDocumentUseCase } from '../../../domain/usecases/documents/C
 import type { UpdateDocumentUseCase } from '../../../domain/usecases/documents/UpdateDocumentUseCase.js';
 import type { DeleteDocumentUseCase } from '../../../domain/usecases/documents/DeleteDocumentUseCase.js';
 import type { SearchDocumentsUseCase } from '../../../domain/usecases/documents/SearchDocumentsUseCase.js';
+import type { MoveToTrashUseCase } from '../../../domain/usecases/documents/MoveToTrashUseCase.js';
+import type { RestoreFromTrashUseCase } from '../../../domain/usecases/documents/RestoreFromTrashUseCase.js';
+import type { PurgeExpiredTrashUseCase } from '../../../domain/usecases/documents/PurgeExpiredTrashUseCase.js';
 import { createStorageService } from '../../../data/services/storage/createStorageService.js';
 import { paramsSchema, errorResponseSchema } from '../householdSchemas.js';
 import {
@@ -45,6 +48,9 @@ export function registerDocumentRoutes(
     updateDocumentUseCase: UpdateDocumentUseCase;
     deleteDocumentUseCase: DeleteDocumentUseCase;
     searchDocumentsUseCase: SearchDocumentsUseCase;
+    moveToTrashUseCase: MoveToTrashUseCase;
+    restoreFromTrashUseCase: RestoreFromTrashUseCase;
+    purgeExpiredTrashUseCase: PurgeExpiredTrashUseCase;
   },
 ): void {
   // GET /v1/households/:householdId/documents/roots - List system roots and senior folders
@@ -611,6 +617,75 @@ export function registerDocumentRoutes(
       },
     );
   });
+
+  // POST /v1/households/:householdId/documents/trash/move - Move item to trash
+  fastify.post(
+    '/v1/households/:householdId/documents/trash/move',
+    { preHandler: requireWritePermission },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      const body = request.body as { itemId?: string; itemType?: string };
+      if (!paramsResult.success || !body.itemId || !['folder', 'document'].includes(body.itemType ?? '')) {
+        return reply.status(400).send({ status: 'error', message: 'Invalid request payload.' });
+      }
+      try {
+        await useCases.moveToTrashUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          itemId: body.itemId,
+          itemType: body.itemType as 'folder' | 'document',
+          requester: getRequesterContext(request),
+        });
+        return reply.status(204).send({ status: 'success' });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // POST /v1/households/:householdId/documents/trash/restore - Restore item from trash
+  fastify.post(
+    '/v1/households/:householdId/documents/trash/restore',
+    { preHandler: requireWritePermission },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      const body = request.body as { itemId?: string; itemType?: string };
+      if (!paramsResult.success || !body.itemId || !['folder', 'document'].includes(body.itemType ?? '')) {
+        return reply.status(400).send({ status: 'error', message: 'Invalid request payload.' });
+      }
+      try {
+        await useCases.restoreFromTrashUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          itemId: body.itemId,
+          itemType: body.itemType as 'folder' | 'document',
+          requester: getRequesterContext(request),
+        });
+        return reply.status(204).send({ status: 'success' });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // DELETE /v1/households/:householdId/documents/trash - Purge expired trash items
+  fastify.delete(
+    '/v1/households/:householdId/documents/trash',
+    { preHandler: requireWritePermission },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({ status: 'error', message: 'Invalid request payload.' });
+      }
+      try {
+        const result = await useCases.purgeExpiredTrashUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          requester: getRequesterContext(request),
+        });
+        return reply.status(200).send({ status: 'success', data: result });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
 
   // GET /v1/households/:householdId/documents/search - Search documents and folders
   fastify.get(

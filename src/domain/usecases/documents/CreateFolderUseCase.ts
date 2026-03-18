@@ -46,6 +46,11 @@ export class CreateFolderUseCase {
       throw new ForbiddenError('Cannot create a folder inside the trash.');
     }
 
+    // Disallow creation directly inside Medical Documents — only senior folders are allowed there (auto-managed)
+    if (parentFolder.type === 'system_root' && parentFolder.systemRootType === 'medical') {
+      throw new ForbiddenError('Cannot create a folder directly inside Medical Documents. Navigate into a senior folder first.');
+    }
+
     // Create folder
     const folder = await this.repository.createDocumentFolder({
       ...input,

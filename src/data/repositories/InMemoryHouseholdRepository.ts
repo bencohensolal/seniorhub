@@ -1188,6 +1188,10 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     }
   }
 
+  async ensureSeniorFoldersForHousehold(_householdId: string, _medicalRootId: string, _userId: string): Promise<void> {
+    // No-op in in-memory repository (used for tests only)
+  }
+
   async listSeniorFolders(householdId: string): Promise<DocumentFolderWithCounts[]> {
     return documentFolders.filter(
       (folder) => folder.householdId === householdId && folder.seniorId !== null && !folder.deletedAt

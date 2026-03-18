@@ -213,6 +213,7 @@ export interface HouseholdRepository {
   restoreDocumentFromTrash(documentId: string, householdId: string): Promise<void>;
   purgeExpiredTrashItems(householdId: string, retentionDays: number): Promise<{ folders: number; documents: number }>;
   ensureSystemRootsForHousehold(householdId: string, userId: string): Promise<void>;
+  ensureSeniorFoldersForHousehold(householdId: string, medicalRootId: string, userId: string): Promise<void>;
   listSeniorFolders(householdId: string): Promise<DocumentFolderWithCounts[]>;
 
   getDocumentById(documentId: string, householdId: string): Promise<Document | null>;

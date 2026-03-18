@@ -172,6 +172,7 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
   restoreDocumentFolder = (folderId: string, householdId: string): Promise<void> => this.documents.restoreDocumentFolder(folderId, householdId);
   getSystemRootFolder = (householdId: string, systemRootType: 'medical' | 'administrative' | 'trash'): Promise<DocumentFolderWithCounts | null> => this.documents.getSystemRootFolder(householdId, systemRootType);
   ensureSystemRootsForHousehold = (householdId: string, userId: string): Promise<void> => this.documents.ensureSystemRootsForHousehold(householdId, userId);
+  ensureSeniorFoldersForHousehold = (householdId: string, medicalRootId: string, userId: string): Promise<void> => this.documents.ensureSeniorFoldersForHousehold(householdId, medicalRootId, userId);
   listSeniorFolders = (householdId: string): Promise<DocumentFolderWithCounts[]> => this.documents.listSeniorFolders(householdId);
   moveDocumentFolderToTrash = (folderId: string, householdId: string, trashFolderId: string): Promise<void> => this.documents.moveDocumentFolderToTrash(folderId, householdId, trashFolderId);
   moveDocumentToTrash = (documentId: string, householdId: string, trashFolderId: string): Promise<void> => this.documents.moveDocumentToTrash(documentId, householdId, trashFolderId);

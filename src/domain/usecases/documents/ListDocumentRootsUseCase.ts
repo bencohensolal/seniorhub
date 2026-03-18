@@ -49,6 +49,9 @@ export class ListDocumentRootsUseCase {
       throw new NotFoundError('System roots not found after creation');
     }
 
+    // Ensure senior folders exist for all active seniors in the household
+    await this.repository.ensureSeniorFoldersForHousehold(input.householdId, medicalRoot.id, input.requester.userId);
+
     // Fetch senior folders under Medical File root
     const seniorFolders = await this.repository.listSeniorFolders(input.householdId);
 

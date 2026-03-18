@@ -602,6 +602,34 @@ export class PostgresDocumentRepository {
     }
   }
 
+  async ensureSeniorFoldersForHousehold(householdId: string, medicalRootId: string, userId: string): Promise<void> {
+    const result = await this.pool.query<{ member_id: string; first_name: string; last_name: string }>(
+      `SELECT hm.id AS member_id, hm.first_name, hm.last_name
+       FROM household_members hm
+       WHERE hm.household_id = $1
+         AND hm.role = 'senior'
+         AND hm.status = 'active'
+         AND NOT EXISTS (
+           SELECT 1 FROM document_folders df
+           WHERE df.household_id = $1
+             AND df.senior_id = hm.id
+             AND df.deleted_at IS NULL
+         )`,
+      [householdId],
+    );
+
+    for (const row of result.rows) {
+      await this.createDocumentFolder({
+        householdId,
+        parentFolderId: medicalRootId,
+        seniorId: row.member_id,
+        name: `${row.first_name} ${row.last_name}`,
+        description: null,
+        createdByUserId: userId,
+      });
+    }
+  }
+
   async moveDocumentFolderToTrash(folderId: string, householdId: string, trashFolderId: string): Promise<void> {
     const now = nowIso();
     const result = await this.pool.query(

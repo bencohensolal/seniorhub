@@ -38,7 +38,7 @@ export class ListFolderContentUseCase {
     // Fetch folders and documents
     const folders = await this.repository.listDocumentFoldersByParent(input.householdId, input.folderId);
     const documents = input.folderId
-      ? await this.repository.listDocumentsByFolder(input.folderId, input.householdId)
+      ? await this.repository.listDocumentsByFolder(input.householdId, input.folderId)
       : [];
 
     return { folders, documents };

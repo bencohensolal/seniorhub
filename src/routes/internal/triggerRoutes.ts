@@ -21,7 +21,14 @@ export function registerInternalRoutes(
           },
         },
         response: {
-          200: {
+          '2xx': {
+            type: 'object',
+            properties: {
+              status: { type: 'string' },
+              message: { type: 'string' },
+            },
+          },
+          '5xx': {
             type: 'object',
             properties: {
               status: { type: 'string' },

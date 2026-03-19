@@ -29,9 +29,11 @@ export class ExpoPushService {
           body: JSON.stringify(chunk),
         });
 
+        const json = await response.json() as { data?: Array<{ status: string; id?: string; message?: string; details?: unknown }> };
         if (!response.ok) {
-          const text = await response.text();
-          console.error('[ExpoPushService] Push failed:', response.status, text);
+          console.error('[ExpoPushService] Push failed:', response.status, JSON.stringify(json));
+        } else {
+          console.log('[ExpoPushService] Tickets:', JSON.stringify(json.data));
         }
       } catch (err) {
         console.error('[ExpoPushService] Network error:', err);

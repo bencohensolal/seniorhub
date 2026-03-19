@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS medication_logs (
-  id TEXT PRIMARY KEY,
-  medication_id TEXT NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
-  household_id TEXT NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  medication_id UUID NOT NULL REFERENCES medications(id) ON DELETE CASCADE,
+  household_id UUID NOT NULL REFERENCES households(id) ON DELETE CASCADE,
   scheduled_date DATE NOT NULL,
   scheduled_time VARCHAR(5),
   taken_at TIMESTAMPTZ NOT NULL,
-  taken_by_user_id TEXT,
+  taken_by_user_id UUID,
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

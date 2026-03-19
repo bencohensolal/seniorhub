@@ -35,12 +35,17 @@ export function registerInternalRoutes(
       const query = request.query as { graceMinutes?: number };
       const graceMinutes = query.graceMinutes ?? 0;
 
-      await checkMissedUseCase.execute(graceMinutes);
-
-      return reply.status(200).send({
-        status: 'ok',
-        message: `Check completed with graceMinutes=${graceMinutes}`,
-      });
+      try {
+        await checkMissedUseCase.execute(graceMinutes);
+        return reply.status(200).send({
+          status: 'ok',
+          message: `Check completed with graceMinutes=${graceMinutes}`,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        request.log.error({ err }, '[triggerRoutes] checkMissedUseCase failed');
+        return reply.status(500).send({ status: 'error', message });
+      }
     },
   );
 }

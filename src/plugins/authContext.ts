@@ -65,6 +65,7 @@ export const registerAuthContext = (fastify: FastifyInstance): void => {
       '/v1/households/invitations/accept',
       '/v1/display-tablets/authenticate', // Tablet setup authentication endpoint
       '/v1/display-tablets/session/refresh',
+      '/internal/', // Internal dev/test routes — no auth required
     ];
     if (publicEndpoints.some(endpoint => request.url.startsWith(endpoint))) {
       return;

@@ -705,6 +705,15 @@ export class InMemoryHouseholdRepository implements HouseholdRepository {
     throw new Error('Medication operations not implemented in InMemoryRepository');
   }
 
+  // Medication Log methods - stub implementations for test compatibility
+  async createMedicationLog(_input: unknown): Promise<never> {
+    throw new Error('MedicationLog operations not implemented in InMemoryRepository');
+  }
+
+  async getMedicationLogs(_householdId: string, _date: string): Promise<never[]> {
+    return [];
+  }
+
   // Medication Reminder methods - stub implementations for test compatibility
   async listMedicationReminders(_medicationId: string, _householdId: string): Promise<never[]> {
     return [];

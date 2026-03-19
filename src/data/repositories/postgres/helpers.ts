@@ -12,6 +12,7 @@ import type { DisplayTablet, DisplayTabletStatus } from '../../../domain/entitie
 import type { TabletDisplayConfig } from '../../../domain/entities/TabletDisplayConfig.js';
 import type { Document } from '../../../domain/entities/Document.js';
 import type { DocumentFolderWithCounts, DocumentFolderType, SystemRootType } from '../../../domain/entities/DocumentFolder.js';
+import type { MedicationLog } from '../../../domain/entities/MedicationLog.js';
 
 // Date and time helpers
 export const nowIso = (): string => new Date().toISOString();
@@ -361,6 +362,32 @@ export const mapDocument = (row: {
   trashedAt: row.trashed_at ? toIso(row.trashed_at) : null,
   originalFolderId: row.original_folder_id ?? null,
 });
+
+export function mapMedicationLog(row: {
+  id: string;
+  medication_id: string;
+  household_id: string;
+  scheduled_date: string | Date;
+  scheduled_time?: string | null;
+  taken_at: string | Date;
+  taken_by_user_id?: string | null;
+  note?: string | null;
+  created_at: string | Date;
+}): MedicationLog {
+  return {
+    id: row.id,
+    medicationId: row.medication_id,
+    householdId: row.household_id,
+    scheduledDate: typeof row.scheduled_date === 'string'
+      ? row.scheduled_date.slice(0, 10)
+      : row.scheduled_date.toISOString().slice(0, 10),
+    takenAt: toIso(row.taken_at),
+    createdAt: toIso(row.created_at),
+    ...(row.scheduled_time != null && { scheduledTime: row.scheduled_time }),
+    ...(row.taken_by_user_id != null && { takenByUserId: row.taken_by_user_id }),
+    ...(row.note != null && { note: row.note }),
+  };
+}
 
 export const mapDocumentFolder = (row: {
   id: string;

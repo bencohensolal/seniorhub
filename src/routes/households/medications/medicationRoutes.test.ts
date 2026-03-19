@@ -23,6 +23,11 @@ const buildUseCases = (overrides: Partial<MedicationRouteUseCases>): MedicationR
   deleteMedicationUseCase: {
     execute: async () => undefined,
   } as unknown as MedicationRouteUseCases['deleteMedicationUseCase'],
+  logMedicationIntakeUseCase: {
+    execute: async () => {
+      throw new Error('not used');
+    },
+  } as unknown as MedicationRouteUseCases['logMedicationIntakeUseCase'],
   ...overrides,
 });
 

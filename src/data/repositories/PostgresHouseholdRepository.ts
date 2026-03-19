@@ -5,6 +5,7 @@ import type { AuditEventInput, HouseholdInvitation } from '../../domain/entities
 import type { HouseholdRole, Member } from '../../domain/entities/Member.js';
 import type { CreateMedicationInput, Medication, UpdateMedicationInput } from '../../domain/entities/Medication.js';
 import type { MedicationReminder, CreateReminderInput, UpdateReminderInput } from '../../domain/entities/MedicationReminder.js';
+import type { MedicationLog, CreateMedicationLogInput } from '../../domain/entities/MedicationLog.js';
 import type { Appointment, AppointmentWithReminders, CreateAppointmentInput, UpdateAppointmentInput } from '../../domain/entities/Appointment.js';
 import type { AppointmentReminder, CreateAppointmentReminderInput, UpdateAppointmentReminderInput } from '../../domain/entities/AppointmentReminder.js';
 import type { AppointmentOccurrence, CreateOccurrenceInput, UpdateOccurrenceInput } from '../../domain/entities/AppointmentOccurrence.js';
@@ -78,6 +79,10 @@ export class PostgresHouseholdRepository implements HouseholdRepository {
   createMedication = (input: CreateMedicationInput): Promise<Medication> => this.medications.createMedication(input);
   updateMedication = (medicationId: string, householdId: string, input: UpdateMedicationInput): Promise<Medication> => this.medications.updateMedication(medicationId, householdId, input);
   deleteMedication = (medicationId: string, householdId: string): Promise<void> => this.medications.deleteMedication(medicationId, householdId);
+
+  // Medication Logs
+  createMedicationLog = (input: CreateMedicationLogInput): Promise<MedicationLog> => this.medications.createMedicationLog(input);
+  getMedicationLogs = (householdId: string, date: string): Promise<MedicationLog[]> => this.medications.getMedicationLogs(householdId, date);
 
   // Medication Reminders
   listMedicationReminders = (medicationId: string, householdId: string): Promise<MedicationReminder[]> => this.medications.listMedicationReminders(medicationId, householdId);

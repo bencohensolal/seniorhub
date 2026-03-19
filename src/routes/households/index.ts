@@ -26,6 +26,7 @@ import { ListHouseholdMedicationsUseCase } from '../../domain/usecases/medicatio
 import { CreateMedicationUseCase } from '../../domain/usecases/medications/CreateMedicationUseCase.js';
 import { UpdateMedicationUseCase } from '../../domain/usecases/medications/UpdateMedicationUseCase.js';
 import { DeleteMedicationUseCase } from '../../domain/usecases/medications/DeleteMedicationUseCase.js';
+import { LogMedicationIntakeUseCase } from '../../domain/usecases/medications/LogMedicationIntakeUseCase.js';
 import { ListMedicationRemindersUseCase } from '../../domain/usecases/reminders/ListMedicationRemindersUseCase.js';
 import { CreateReminderUseCase } from '../../domain/usecases/reminders/CreateReminderUseCase.js';
 import { UpdateReminderUseCase } from '../../domain/usecases/reminders/UpdateReminderUseCase.js';
@@ -116,6 +117,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     createMedicationUseCase: new CreateMedicationUseCase(repository),
     updateMedicationUseCase: new UpdateMedicationUseCase(repository),
     deleteMedicationUseCase: new DeleteMedicationUseCase(repository),
+    logMedicationIntakeUseCase: new LogMedicationIntakeUseCase(repository),
     listMedicationRemindersUseCase: new ListMedicationRemindersUseCase(repository),
     createReminderUseCase: new CreateReminderUseCase(repository),
     updateReminderUseCase: new UpdateReminderUseCase(repository),
@@ -193,6 +195,7 @@ export const householdsRoutes: FastifyPluginAsync = async (fastify) => {
     createMedicationUseCase: useCases.createMedicationUseCase,
     updateMedicationUseCase: useCases.updateMedicationUseCase,
     deleteMedicationUseCase: useCases.deleteMedicationUseCase,
+    logMedicationIntakeUseCase: useCases.logMedicationIntakeUseCase,
   });
 
   registerReminderRoutes(fastify, repository, {

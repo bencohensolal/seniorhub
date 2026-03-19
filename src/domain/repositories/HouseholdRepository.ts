@@ -18,6 +18,7 @@ import type { UserProfile, UpdateUserProfileInput } from '../entities/UserProfil
 import type { HouseholdSettings, UpdateHouseholdSettingsInput } from '../entities/HouseholdSettings.js';
 import type { Document, CreateDocumentInput, UpdateDocumentInput } from '../entities/Document.js';
 import type { DocumentFolder, DocumentFolderWithCounts, CreateDocumentFolderInput, UpdateDocumentFolderInput } from '../entities/DocumentFolder.js';
+import type { MedicationLog, CreateMedicationLogInput } from '../entities/MedicationLog.js';
 
 export interface InvitationCandidate {
   firstName: string;
@@ -98,6 +99,10 @@ export interface HouseholdRepository {
   createMedication(input: CreateMedicationInput): Promise<Medication>;
   updateMedication(medicationId: string, householdId: string, input: UpdateMedicationInput): Promise<Medication>;
   deleteMedication(medicationId: string, householdId: string): Promise<void>;
+
+  // Medication Logs
+  createMedicationLog(input: CreateMedicationLogInput): Promise<MedicationLog>;
+  getMedicationLogs(householdId: string, date: string): Promise<MedicationLog[]>;
 
   // Medication Reminders
   listMedicationReminders(medicationId: string, householdId: string): Promise<MedicationReminder[]>;

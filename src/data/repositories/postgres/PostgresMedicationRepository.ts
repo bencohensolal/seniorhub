@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import type { CreateMedicationInput, Medication, MedicationForm, UpdateMedicationInput } from '../../../domain/entities/Medication.js';
 import type { MedicationReminder, CreateReminderInput, UpdateReminderInput } from '../../../domain/entities/MedicationReminder.js';
+import type { MedicationLog, CreateMedicationLogInput } from '../../../domain/entities/MedicationLog.js';
 import {
   NotFoundError,
   ValidationError,
@@ -10,6 +11,7 @@ import {
   nowIso,
   mapMedication,
   mapReminder,
+  mapMedicationLog,
 } from './helpers.js';
 
 export class PostgresMedicationRepository {
@@ -369,5 +371,58 @@ export class PostgresMedicationRepository {
     if (result.rowCount === 0) {
       throw new NotFoundError('Reminder not found.');
     }
+  }
+
+  // Medication Logs
+
+  async createMedicationLog(input: CreateMedicationLogInput): Promise<MedicationLog> {
+    const id = randomUUID();
+    const now = nowIso();
+
+    // Idempotence : si un log existe déjà pour ce (medication_id, scheduled_date, scheduled_time), le retourner
+    const existing = await this.pool.query<{ id: string }>(
+      `SELECT id FROM medication_logs
+       WHERE medication_id = $1
+         AND scheduled_date = $2
+         AND (scheduled_time = $3 OR (scheduled_time IS NULL AND $3 IS NULL))
+       LIMIT 1`,
+      [input.medicationId, input.scheduledDate, input.scheduledTime ?? null],
+    );
+    if (existing.rows[0]) {
+      const row = await this.pool.query(
+        `SELECT * FROM medication_logs WHERE id = $1`,
+        [existing.rows[0].id],
+      );
+      return mapMedicationLog(row.rows[0]);
+    }
+
+    const result = await this.pool.query(
+      `INSERT INTO medication_logs
+         (id, medication_id, household_id, scheduled_date, scheduled_time, taken_at, taken_by_user_id, note, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [
+        id,
+        input.medicationId,
+        input.householdId,
+        input.scheduledDate,
+        input.scheduledTime ?? null,
+        input.takenAt,
+        input.takenByUserId ?? null,
+        input.note ?? null,
+        now,
+      ],
+    );
+    return mapMedicationLog(result.rows[0]);
+  }
+
+  async getMedicationLogs(householdId: string, date: string): Promise<MedicationLog[]> {
+    const result = await this.pool.query(
+      `SELECT * FROM medication_logs
+       WHERE household_id = $1 AND scheduled_date = $2
+       ORDER BY taken_at ASC`,
+      [householdId, date],
+    );
+    return result.rows.map(mapMedicationLog);
   }
 }

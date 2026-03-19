@@ -5,6 +5,7 @@ import type { ListHouseholdMedicationsUseCase } from '../../../domain/usecases/m
 import type { CreateMedicationUseCase } from '../../../domain/usecases/medications/CreateMedicationUseCase.js';
 import type { UpdateMedicationUseCase } from '../../../domain/usecases/medications/UpdateMedicationUseCase.js';
 import type { DeleteMedicationUseCase } from '../../../domain/usecases/medications/DeleteMedicationUseCase.js';
+import type { LogMedicationIntakeUseCase } from '../../../domain/usecases/medications/LogMedicationIntakeUseCase.js';
 import { paramsSchema, errorResponseSchema } from '../householdSchemas.js';
 import {
   createMedicationBodySchema,
@@ -29,6 +30,7 @@ export function registerMedicationRoutes(
     createMedicationUseCase: CreateMedicationUseCase;
     updateMedicationUseCase: UpdateMedicationUseCase;
     deleteMedicationUseCase: DeleteMedicationUseCase;
+    logMedicationIntakeUseCase: LogMedicationIntakeUseCase;
   },
 ): void {
   type CreateMedicationRouteInput = Parameters<CreateMedicationUseCase['execute']>[0];
@@ -322,6 +324,142 @@ export function registerMedicationRoutes(
         });
 
         return reply.status(204).send();
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // POST /v1/households/:householdId/medications/:medicationId/logs - Log medication intake
+  fastify.post(
+    '/v1/households/:householdId/medications/:medicationId/logs',
+    {
+      schema: {
+        tags: ['Medications'],
+        params: {
+          type: 'object',
+          properties: {
+            householdId: { type: 'string' },
+            medicationId: { type: 'string' },
+          },
+          required: ['householdId', 'medicationId'],
+        },
+        body: {
+          type: 'object',
+          required: ['scheduledDate'],
+          properties: {
+            scheduledDate: { type: 'string' },
+            scheduledTime: { type: 'string' },
+            takenAt: { type: 'string' },
+            note: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: { type: 'object' },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = medicationParamsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      const body = request.body as {
+        scheduledDate: string;
+        scheduledTime?: string;
+        takenAt?: string;
+        note?: string;
+      };
+
+      try {
+        const log = await useCases.logMedicationIntakeUseCase.execute({
+          householdId: paramsResult.data.householdId,
+          medicationId: paramsResult.data.medicationId,
+          scheduledDate: body.scheduledDate,
+          requester: getRequesterContext(request),
+          ...(body.scheduledTime !== undefined && { scheduledTime: body.scheduledTime }),
+          ...(body.takenAt !== undefined && { takenAt: body.takenAt }),
+          ...(body.note !== undefined && { note: body.note }),
+        });
+
+        return reply.status(200).send({ status: 'success', data: log });
+      } catch (error) {
+        return handleDomainError(error, reply);
+      }
+    },
+  );
+
+  // GET /v1/households/:householdId/medication-logs?date=YYYY-MM-DD - Get medication logs for a date
+  fastify.get(
+    '/v1/households/:householdId/medication-logs',
+    {
+      schema: {
+        tags: ['Medications'],
+        params: {
+          type: 'object',
+          properties: { householdId: { type: 'string' } },
+          required: ['householdId'],
+        },
+        querystring: {
+          type: 'object',
+          required: ['date'],
+          properties: {
+            date: { type: 'string' },
+          },
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['success'] },
+              data: { type: 'array', items: { type: 'object' } },
+            },
+            required: ['status', 'data'],
+          },
+          400: errorResponseSchema,
+          403: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const paramsResult = paramsSchema.safeParse(request.params);
+      if (!paramsResult.success) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Invalid request payload.',
+        });
+      }
+
+      const query = request.query as { date?: string };
+      if (!query.date) {
+        return reply.status(400).send({
+          status: 'error',
+          message: 'Missing required query parameter: date.',
+        });
+      }
+
+      try {
+        verifyTabletHouseholdAccess(request, reply, paramsResult.data.householdId);
+
+        const logs = await repository.getMedicationLogs(paramsResult.data.householdId, query.date);
+
+        return reply.status(200).send({ status: 'success', data: logs });
       } catch (error) {
         return handleDomainError(error, reply);
       }
